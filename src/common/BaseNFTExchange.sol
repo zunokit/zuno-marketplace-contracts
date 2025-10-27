@@ -377,4 +377,155 @@ contract BaseNFTExchange is Initializable, Ownable, ReentrancyGuard, ERC165, IEx
         return interfaceId == type(IERC165).interfaceId || interfaceId == type(IExchangeCore).interfaceId
             || super.supportsInterface(interfaceId);
     }
+
+    // ============================================================================
+    // GETTER FUNCTIONS FOR CLI/FRONTEND INTEGRATION
+    // ============================================================================
+
+    /**
+     * @notice Get active listing ID for a specific NFT
+     * @dev Returns zero bytes32 if no active listing exists
+     * @param nftContract NFT contract address
+     * @param tokenId Token ID
+     * @param seller Seller address
+     * @return listingId The listing ID if active, zero bytes32 otherwise
+     */
+    function getActiveListingByNFT(address nftContract, uint256 tokenId, address seller)
+        external
+        view
+        returns (bytes32 listingId)
+    {
+        listingId = s_activeListings[nftContract][tokenId][seller];
+
+        // Validate it's truly active and not expired
+        if (listingId != bytes32(0)) {
+            Listing storage listing = s_listings[listingId];
+            if (
+                listing.status != ListingStatus.Active
+                    || block.timestamp >= listing.listingStart + listing.listingDuration
+            ) {
+                return bytes32(0);
+            }
+        }
+
+        return listingId;
+    }
+
+    /**
+     * @notice Get all active listings by seller
+     * @param seller Seller address
+     * @return activeListings Array of active listing IDs
+     */
+    function getActiveListingsBySeller(address seller) external view returns (bytes32[] memory activeListings) {
+        bytes32[] memory allListings = s_listingsBySeller[seller];
+        uint256 activeCount = 0;
+
+        // First pass: count active listings
+        for (uint256 i = 0; i < allListings.length; i++) {
+            Listing storage listing = s_listings[allListings[i]];
+            if (
+                listing.status == ListingStatus.Active
+                    && block.timestamp < listing.listingStart + listing.listingDuration
+            ) {
+                activeCount++;
+            }
+        }
+
+        // Second pass: populate array
+        activeListings = new bytes32[](activeCount);
+        uint256 currentIndex = 0;
+        for (uint256 i = 0; i < allListings.length; i++) {
+            Listing storage listing = s_listings[allListings[i]];
+            if (
+                listing.status == ListingStatus.Active
+                    && block.timestamp < listing.listingStart + listing.listingDuration
+            ) {
+                activeListings[currentIndex] = allListings[i];
+                currentIndex++;
+            }
+        }
+
+        return activeListings;
+    }
+
+    /**
+     * @notice Check if NFT is currently listed
+     * @param nftContract NFT contract address
+     * @param tokenId Token ID
+     * @return isListed True if actively listed by anyone
+     * @return listingId The listing ID if listed, zero bytes32 otherwise
+     * @return seller The seller address if listed
+     */
+    function isNFTListed(address nftContract, uint256 tokenId)
+        external
+        view
+        returns (bool isListed, bytes32 listingId, address seller)
+    {
+        // Check all collection listings for this NFT
+        bytes32[] memory collectionListings = s_listingsByCollection[nftContract];
+
+        for (uint256 i = 0; i < collectionListings.length; i++) {
+            Listing storage listing = s_listings[collectionListings[i]];
+
+            if (
+                listing.tokenId == tokenId && listing.status == ListingStatus.Active
+                    && block.timestamp < listing.listingStart + listing.listingDuration
+            ) {
+                return (true, collectionListings[i], listing.seller);
+            }
+        }
+
+        return (false, bytes32(0), address(0));
+    }
+
+    /**
+     * @notice Get total active listings count for a collection
+     * @param nftContract NFT contract address
+     * @return count Number of active listings
+     */
+    function getActiveListingsCount(address nftContract) external view returns (uint256 count) {
+        bytes32[] memory collectionListings = s_listingsByCollection[nftContract];
+
+        for (uint256 i = 0; i < collectionListings.length; i++) {
+            Listing storage listing = s_listings[collectionListings[i]];
+            if (
+                listing.status == ListingStatus.Active
+                    && block.timestamp < listing.listingStart + listing.listingDuration
+            ) {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    /**
+     * @notice Batch check if multiple NFTs are listed
+     * @param nftContracts Array of NFT contract addresses
+     * @param tokenIds Array of token IDs
+     * @return listed Array of boolean values indicating if each NFT is listed
+     */
+    function batchIsNFTListed(address[] calldata nftContracts, uint256[] calldata tokenIds)
+        external
+        view
+        returns (bool[] memory listed)
+    {
+        require(nftContracts.length == tokenIds.length, "Array length mismatch");
+
+        listed = new bool[](nftContracts.length);
+
+        for (uint256 i = 0; i < nftContracts.length; i++) {
+            bytes32 listingId = s_activeListings[nftContracts[i]][tokenIds[i]][msg.sender];
+
+            if (listingId != bytes32(0)) {
+                Listing storage listing = s_listings[listingId];
+                listed[i] = listing.status == ListingStatus.Active
+                    && block.timestamp < listing.listingStart + listing.listingDuration;
+            } else {
+                listed[i] = false;
+            }
+        }
+
+        return listed;
+    }
 }
