@@ -6,8 +6,6 @@ import "forge-std/console2.sol";
 
 // Core contracts
 import {MarketplaceValidator} from "src/core/validation/MarketplaceValidator.sol";
-import {NFTExchangeFactory} from "src/core/factory/NFTExchangeFactory.sol";
-import {NFTExchangeRegistry} from "src/core/exchange/NFTExchangeRegistry.sol";
 import {ERC721NFTExchange} from "src/core/exchange/ERC721NFTExchange.sol";
 import {ERC1155NFTExchange} from "src/core/exchange/ERC1155NFTExchange.sol";
 import {AuctionFactory} from "src/core/factory/AuctionFactory.sol";
@@ -31,8 +29,6 @@ import {MockERC20} from "test/mocks/MockERC20.sol";
 contract AdvancedMarketplaceScenariosTest is Test {
     // Core contracts
     MarketplaceValidator public validator;
-    NFTExchangeFactory public exchangeFactory;
-    NFTExchangeRegistry public exchangeRegistry;
     ERC721NFTExchange public erc721Exchange;
     ERC1155NFTExchange public erc1155Exchange;
     AuctionFactory public auctionFactory;
@@ -67,25 +63,12 @@ contract AdvancedMarketplaceScenariosTest is Test {
         accessControl = new MarketplaceAccessControl();
         feeManager = new AdvancedFeeManager(address(accessControl), marketplaceWallet);
 
-        // Deploy exchange factory
-        exchangeFactory = new NFTExchangeFactory(marketplaceWallet);
+        // Deploy exchanges directly
+        erc721Exchange = new ERC721NFTExchange();
+        erc721Exchange.initialize(marketplaceWallet, owner);
 
-        // Deploy implementation contracts
-        address erc721Impl = address(new ERC721NFTExchange());
-        address erc1155Impl = address(new ERC1155NFTExchange());
-
-        // Set implementations
-        exchangeFactory.setImplementation(NFTExchangeFactory.ExchangeType.ERC721, erc721Impl);
-        exchangeFactory.setImplementation(NFTExchangeFactory.ExchangeType.ERC1155, erc1155Impl);
-
-        // Create exchanges
-        address erc721Addr = exchangeFactory.createExchange(NFTExchangeFactory.ExchangeType.ERC721);
-        address erc1155Addr = exchangeFactory.createExchange(NFTExchangeFactory.ExchangeType.ERC1155);
-
-        erc721Exchange = ERC721NFTExchange(erc721Addr);
-        erc1155Exchange = ERC1155NFTExchange(erc1155Addr);
-
-        exchangeRegistry = new NFTExchangeRegistry(address(exchangeFactory));
+        erc1155Exchange = new ERC1155NFTExchange();
+        erc1155Exchange.initialize(marketplaceWallet, owner);
 
         // Deploy auction factory
         auctionFactory = new AuctionFactory(marketplaceWallet);
@@ -127,11 +110,9 @@ contract AdvancedMarketplaceScenariosTest is Test {
         // Setup approvals
         vm.startPrank(user1);
         mockERC721.setApprovalForAll(address(erc721Exchange), true);
-        mockERC721.setApprovalForAll(address(exchangeRegistry), true);
         mockERC721.setApprovalForAll(address(auctionFactory), true);
         mockERC721.setApprovalForAll(address(bundleManager), true);
         mockERC1155.setApprovalForAll(address(erc1155Exchange), true);
-        mockERC1155.setApprovalForAll(address(exchangeRegistry), true);
         mockERC1155.setApprovalForAll(address(bundleManager), true);
         mockERC20.approve(address(offerManager), type(uint256).max);
         vm.stopPrank();
@@ -153,12 +134,11 @@ contract AdvancedMarketplaceScenariosTest is Test {
 
         vm.startPrank(user1);
 
-        // Create multiple listings through registry
+        // Create multiple listings directly on ERC721 exchange
         for (uint256 i = 1; i <= 3; i++) {
-            exchangeRegistry.listNFT(
+            erc721Exchange.listNFT(
                 address(mockERC721),
                 i,
-                1, // amount for ERC721
                 PRICE_1_ETH * i,
                 DURATION_7_DAYS
             );
@@ -175,9 +155,6 @@ contract AdvancedMarketplaceScenariosTest is Test {
 
         vm.stopPrank();
 
-        // Verify all are active
-        uint256 totalListings = exchangeRegistry.getTotalListings();
-        assertEq(totalListings, 3);
         console2.log("All concurrent operations successful");
     }
 
@@ -199,9 +176,9 @@ contract AdvancedMarketplaceScenariosTest is Test {
 
         // Buy all listings rapidly
         vm.startPrank(user2);
-        uint256 totalPrice = PRICE_1_ETH + (PRICE_1_ETH * 500) / 10000;
 
         for (uint256 i = 0; i < 10; i++) {
+            uint256 totalPrice = erc721Exchange.getBuyerSeesPrice(listingIds[i]);
             erc721Exchange.buyNFT{value: totalPrice}(listingIds[i]);
         }
         vm.stopPrank();

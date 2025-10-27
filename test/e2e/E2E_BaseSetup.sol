@@ -6,14 +6,12 @@ import {Test, console2} from "lib/forge-std/src/Test.sol";
 // Core Exchange
 import {ERC721NFTExchange} from "src/core/exchange/ERC721NFTExchange.sol";
 import {ERC1155NFTExchange} from "src/core/exchange/ERC1155NFTExchange.sol";
-import {NFTExchangeRegistry} from "src/core/exchange/NFTExchangeRegistry.sol";
 
 // Collection System
 import {ERC721Collection} from "src/core/collection/ERC721Collection.sol";
 import {ERC1155Collection} from "src/core/collection/ERC1155Collection.sol";
 import {ERC721CollectionFactory} from "src/core/factory/ERC721CollectionFactory.sol";
 import {ERC1155CollectionFactory} from "src/core/factory/ERC1155CollectionFactory.sol";
-import {CollectionFactoryRegistry} from "src/core/factory/CollectionFactoryRegistry.sol";
 import {ERC721CollectionImplementation} from "src/core/proxy/ERC721CollectionImplementation.sol";
 import {ERC1155CollectionImplementation} from "src/core/proxy/ERC1155CollectionImplementation.sol";
 import {CollectionVerifier} from "src/core/collection/CollectionVerifier.sol";
@@ -71,11 +69,9 @@ abstract contract E2E_BaseSetup is Test {
 
     ERC721NFTExchange public erc721Exchange;
     ERC1155NFTExchange public erc1155Exchange;
-    NFTExchangeRegistry public exchangeRegistry;
 
     ERC721CollectionFactory public erc721Factory;
     ERC1155CollectionFactory public erc1155Factory;
-    CollectionFactoryRegistry public factoryRegistry;
     CollectionVerifier public collectionVerifier;
 
     AuctionFactory public auctionFactory;
@@ -232,9 +228,6 @@ abstract contract E2E_BaseSetup is Test {
         erc721Factory = new ERC721CollectionFactory();
         erc1155Factory = new ERC1155CollectionFactory();
 
-        // Deploy registry with both factory addresses
-        factoryRegistry = new CollectionFactoryRegistry(address(erc721Factory), address(erc1155Factory));
-
         // Deploy verifier
         collectionVerifier = new CollectionVerifier(
             address(accessControl),
@@ -245,7 +238,6 @@ abstract contract E2E_BaseSetup is Test {
         console2.log("Collection system deployed");
         console2.log("  ERC721Factory:", address(erc721Factory));
         console2.log("  ERC1155Factory:", address(erc1155Factory));
-        console2.log("  FactoryRegistry:", address(factoryRegistry));
     }
 
     function _deployAuctionSystem() internal {

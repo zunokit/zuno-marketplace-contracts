@@ -10,7 +10,6 @@ import {ERC1155NFTExchange} from "src/core/exchange/ERC1155NFTExchange.sol";
 // Collection System
 import {ERC721CollectionFactory} from "src/core/factory/ERC721CollectionFactory.sol";
 import {ERC1155CollectionFactory} from "src/core/factory/ERC1155CollectionFactory.sol";
-import {CollectionFactoryRegistry} from "src/core/factory/CollectionFactoryRegistry.sol";
 
 // Auction System
 import {AuctionFactory} from "src/core/factory/AuctionFactory.sol";
@@ -49,11 +48,6 @@ import {CollectionVerifier} from "src/core/collection/CollectionVerifier.sol";
 // Analytics
 import {ListingHistoryTracker} from "src/core/analytics/ListingHistoryTracker.sol";
 
-// Management Systems
-import {RoleManager} from "src/core/access/RoleManager.sol";
-import {UpgradeManager} from "src/core/upgrades/UpgradeManager.sol";
-import {ConfigManager} from "src/core/config/ConfigManager.sol";
-
 // OpenZeppelin
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 
@@ -64,8 +58,8 @@ import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
  *
  * Output:
  * - All core contracts deployed
- * - MarketplaceHub deployed and configured
- * - Frontend only needs MarketplaceHub address
+ * - AdminHub and UserHub deployed and configured
+ * - Frontend needs UserHub address, Admin operations use AdminHub address
  *
  * Usage:
  *   forge script script/deploy/DeployAll.s.sol --rpc-url $RPC_URL --broadcast --verify
@@ -81,7 +75,6 @@ contract DeployAll is Script {
 
     ERC721CollectionFactory public erc721Factory;
     ERC1155CollectionFactory public erc1155Factory;
-    CollectionFactoryRegistry public factoryRegistry;
 
     AuctionFactory public auctionFactory;
     EnglishAuction public englishAuction;
@@ -112,14 +105,9 @@ contract DeployAll is Script {
     ListingValidator public listingValidator;
     MarketplaceValidator public marketplaceValidator;
     CollectionVerifier public collectionVerifier;
-    
+
     // Analytics
     ListingHistoryTracker public historyTracker;
-
-    // Management Systems for extensibility
-    RoleManager public roleManager;
-    UpgradeManager public upgradeManager;
-    ConfigManager public configManager;
 
     function setUp() public {
         admin = vm.envOr("MARKETPLACE_WALLET", address(0));
@@ -149,7 +137,7 @@ contract DeployAll is Script {
 
         vm.stopBroadcast();
     }
-    
+
     /**
      * @notice Deploy all contracts without broadcast (for testing)
      * @dev This function can be called from tests without broadcast conflicts
@@ -157,7 +145,7 @@ contract DeployAll is Script {
     function deployAll() public {
         // In production: admin is from ENV, in testing: use msg.sender
         if (admin == address(0)) {
-            admin = msg.sender;  // Default for testing
+            admin = msg.sender; // Default for testing
         }
         // Set deployer if not set (for testing)
         if (deployer == address(0)) {
@@ -183,20 +171,24 @@ contract DeployAll is Script {
 
     function _deploySecurityAndValidation() internal {
         console.log("2/9 Deploying Security & Validation...");
-        
+
         // Deploy Emergency Manager
         emergencyManager = new EmergencyManager(address(accessControl));
         console.log("  EmergencyManager:", address(emergencyManager));
-        
+
         // Deploy Timelock (48 hour delay for critical operations)
         timelock = new MarketplaceTimelock();
         console.log("  Timelock:", address(timelock));
-        
+
         // Deploy Validators
         listingValidator = new ListingValidator(address(accessControl));
         marketplaceValidator = new MarketplaceValidator();
-        collectionVerifier = new CollectionVerifier(address(accessControl), admin, 0);
-        
+        collectionVerifier = new CollectionVerifier(
+            address(accessControl),
+            admin,
+            0
+        );
+
         console.log("  ListingValidator:", address(listingValidator));
         console.log("  MarketplaceValidator:", address(marketplaceValidator));
         console.log("  CollectionVerifier:", address(collectionVerifier));
@@ -234,14 +226,9 @@ contract DeployAll is Script {
 
         erc721Factory = new ERC721CollectionFactory();
         erc1155Factory = new ERC1155CollectionFactory();
-        factoryRegistry = new CollectionFactoryRegistry(
-            address(erc721Factory),
-            address(erc1155Factory)
-        );
 
         console.log("  ERC721Factory:", address(erc721Factory));
         console.log("  ERC1155Factory:", address(erc1155Factory));
-        console.log("  FactoryRegistry:", address(factoryRegistry));
     }
 
     function _deployAuctions() internal {
@@ -264,21 +251,21 @@ contract DeployAll is Script {
 
     function _deployAdvancedManagers() internal {
         console.log("7/9 Deploying Advanced Managers...");
-        
+
         // Deploy Offer Manager
         offerManager = new OfferManager(
             address(accessControl),
             address(feeManager)
         );
         console.log("  OfferManager:", address(offerManager));
-        
+
         // Deploy Bundle Manager
         bundleManager = new BundleManager(
             address(accessControl),
             address(feeManager)
         );
         console.log("  BundleManager:", address(bundleManager));
-        
+
         // Deploy Advanced Listing Manager
         listingManager = new AdvancedListingManager(
             address(accessControl),
@@ -286,63 +273,13 @@ contract DeployAll is Script {
         );
         console.log("  AdvancedListingManager:", address(listingManager));
     }
-    
+
     function _deployAnalytics() internal {
         console.log("8/9 Deploying Analytics...");
-        
+
         // Deploy History Tracker
-        historyTracker = new ListingHistoryTracker(
-            address(accessControl)
-        );
+        historyTracker = new ListingHistoryTracker(address(accessControl));
         console.log("  ListingHistoryTracker:", address(historyTracker));
-    }
-
-    function _deployManagementSystems() internal {
-        console.log("    RoleManager...");
-        roleManager = new RoleManager(admin);
-
-        console.log("    UpgradeManager...");
-        upgradeManager = new UpgradeManager(admin);
-
-        console.log("    ConfigManager...");
-        configManager = new ConfigManager(admin);
-
-        // Connect management systems to AdminHub
-        _connectManagementToHub();
-
-        console.log("    Management systems connected to AdminHub");
-        console.log("      RoleManager:", address(roleManager));
-        console.log("      UpgradeManager:", address(upgradeManager));
-        console.log("      ConfigManager:", address(configManager));
-    }
-
-    /**
-     * @notice Connect management contracts to AdminHub with proper access control
-     * @dev Handles both scenarios: deployer == admin OR deployer != admin
-     */
-    function _connectManagementToHub() private {
-        bytes32 adminRole = keccak256("ADMIN_ROLE");
-
-        if (admin == deployer) {
-            // Simple case: deployer is admin, has all permissions
-            adminHub.setManagementContracts(
-                address(roleManager),
-                address(upgradeManager),
-                address(configManager)
-            );
-        } else {
-            // Complex case: need temporary permission for deployer
-            _executeWithTemporaryRole(
-                address(adminHub),
-                adminRole,
-                abi.encodeWithSelector(
-                    AdminHub.setManagementContracts.selector,
-                    address(roleManager),
-                    address(upgradeManager),
-                    address(configManager)
-                )
-            );
-        }
     }
 
     /**
@@ -364,7 +301,10 @@ contract DeployAll is Script {
 
         // Step 2: Execute the privileged function
         (bool success, bytes memory returnData) = target.call(data);
-        require(success, string(abi.encodePacked("Execution failed: ", returnData)));
+        require(
+            success,
+            string(abi.encodePacked("Execution failed: ", returnData))
+        );
 
         // Step 3: Immediately revoke temporary role
         accessControlledContract.revokeRole(role, deployer);
@@ -412,7 +352,6 @@ contract DeployAll is Script {
 
         // Deploy management contracts for extensibility
         console.log("  Deploying Management Systems...");
-        _deployManagementSystems();
 
         // Clean up: revoke deployer's temporary roles from AdminHub if granted
         if (admin != deployer) {
@@ -469,9 +408,6 @@ contract DeployAll is Script {
         console.log("  HistoryTracker:    ", address(historyTracker));
         console.log("");
         console.log("EXTENSIBILITY SYSTEM:");
-        console.log("  RoleManager:       ", address(roleManager));
-        console.log("  UpgradeManager:    ", address(upgradeManager));
-        console.log("  ConfigManager:     ", address(configManager));
         console.log("");
         console.log("========================================");
         console.log("  FOR FRONTEND INTEGRATION");
@@ -481,14 +417,10 @@ contract DeployAll is Script {
         console.log("");
         console.log("Frontend needs UserHub address for read operations:");
         console.log("Admin needs AdminHub address for management:");
-        console.log("Use RoleManager/UpgradeManager/ConfigManager for future extensions");
         console.log("");
         console.log("Copy this to your .env:");
         console.log("USER_HUB=", address(userHub));
         console.log("ADMIN_HUB=", address(adminHub));
-        console.log("ROLE_MANAGER=", address(roleManager));
-        console.log("UPGRADE_MANAGER=", address(upgradeManager));
-        console.log("CONFIG_MANAGER=", address(configManager));
         console.log("");
         console.log("========================================");
     }
@@ -652,6 +584,8 @@ contract DeployAll is Script {
 
         deployAll();
         // Note: Admin must call configureSystem() separately for security
-        console.log("WARNING: Admin must call configureSystem() to complete setup");
+        console.log(
+            "WARNING: Admin must call configureSystem() to complete setup"
+        );
     }
 }

@@ -159,7 +159,7 @@ contract ERC721NFTExchange is BaseNFTExchange {
             realityPrice: m_realityPrice
         });
 
-        _distributePayments(payment);
+        _distributePaymentsWithEvent(m_listingId, payment);
         _finalizeListing(m_listingId, s_listing.contractAddress, s_listing.seller);
     }
 

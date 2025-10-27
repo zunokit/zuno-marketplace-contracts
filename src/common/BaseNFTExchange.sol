@@ -214,15 +214,40 @@ contract BaseNFTExchange is Initializable, Ownable, ReentrancyGuard, ERC165, IEx
         PaymentDistributionLib.distributePayment(paymentData);
     }
 
+    // Internal function to distribute payments and emit event
+    function _distributePaymentsWithEvent(
+        bytes32 listingId,
+        PaymentDistribution memory payment
+    ) internal {
+        // Calculate seller amount (listing price minus royalty)
+        uint256 sellerAmount = payment.price - payment.royalty;
+        uint256 totalPrice = payment.price + payment.takerFee;
+
+        // Distribute payments
+        _distributePayments(payment);
+
+        // Emit detailed payment distribution event
+        emit PaymentDistributed(
+            listingId,
+            payment.seller,
+            msg.sender,
+            totalPrice,
+            sellerAmount,
+            payment.takerFee,
+            payment.royalty,
+            payment.royaltyReceiver
+        );
+    }
+
     // Internal function to finalize listing
     function _finalizeListing(bytes32 m_listingId, address m_contractAddress, address m_seller) internal {
         // Update listing status
         s_listings[m_listingId].status = ListingStatus.Sold;
 
+        uint256 tokenId = s_listings[m_listingId].tokenId;
+
         // Remove from active listings
-        delete s_activeListings[m_contractAddress][
-            s_listings[m_listingId].tokenId
-        ][m_seller];
+        delete s_activeListings[m_contractAddress][tokenId][m_seller];
 
         // Remove from collection and seller listings
         _removeListingFromArray(s_listingsByCollection[m_contractAddress], m_listingId);
@@ -232,7 +257,7 @@ contract BaseNFTExchange is Initializable, Ownable, ReentrancyGuard, ERC165, IEx
         emit NFTSold(
             m_listingId,
             m_contractAddress,
-            s_listings[m_listingId].tokenId,
+            tokenId,
             m_seller,
             msg.sender,
             s_listings[m_listingId].price

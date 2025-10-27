@@ -44,8 +44,8 @@ forge script script/deploy/DeployAll.s.sol \\
   --broadcast \\
   --verify
 
-# Output will provide MarketplaceHub address
-# Frontend only needs this ONE address
+# Output will provide UserHub and AdminHub addresses
+# Frontend needs UserHub, Admin needs AdminHub
 ```
 
 ### 3. Mainnet Deployment
@@ -66,8 +66,8 @@ forge script script/deploy/DeployAll.s.sol \\
   --broadcast \\
   --verify
 
-# Save the MarketplaceHub address from output
-# This is the ONLY address frontend needs
+# Save the UserHub and AdminHub addresses from output
+# Frontend needs UserHub, Admin needs AdminHub
 ```
 
 ## Post-Deployment

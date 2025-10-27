@@ -54,6 +54,44 @@ event ListingCancelled(
     bytes32 indexed listingId, address indexed contractAddress, uint256 indexed tokenId, address seller
 );
 
+/**
+ * @notice Emitted when payment is distributed after a sale
+ * @param listingId Unique identifier for the listing
+ * @param seller Address of the seller
+ * @param buyer Address of the buyer
+ * @param totalPrice Total price paid by buyer
+ * @param sellerAmount Net amount received by seller
+ * @param marketplaceFee Marketplace fee amount
+ * @param royaltyAmount Royalty fee amount
+ * @param royaltyRecipient Address receiving royalty (address(0) if no royalty)
+ */
+event PaymentDistributed(
+    bytes32 indexed listingId,
+    address indexed seller,
+    address indexed buyer,
+    uint256 totalPrice,
+    uint256 sellerAmount,
+    uint256 marketplaceFee,
+    uint256 royaltyAmount,
+    address royaltyRecipient
+);
+
+/**
+ * @notice Emitted when a listing price is updated
+ * @param listingId Unique identifier for the listing
+ * @param seller Address of the seller
+ * @param oldPrice Previous listing price
+ * @param newPrice New listing price
+ * @param timestamp When the update occurred
+ */
+event ListingPriceUpdated(
+    bytes32 indexed listingId,
+    address indexed seller,
+    uint256 oldPrice,
+    uint256 newPrice,
+    uint256 timestamp
+);
+
 // ============================================================================
 // MARKETPLACE CONFIGURATION EVENTS
 // ============================================================================
