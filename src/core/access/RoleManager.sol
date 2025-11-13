@@ -56,10 +56,7 @@ contract RoleManager is AccessControl {
      * @param account Address to grant roles to
      * @param roles Array of role identifiers
      */
-    function grantRoles(address account, bytes32[] calldata roles)
-        external
-        onlyRole(SUPER_ADMIN_ROLE)
-    {
+    function grantRoles(address account, bytes32[] calldata roles) external onlyRole(SUPER_ADMIN_ROLE) {
         for (uint256 i = 0; i < roles.length; i++) {
             _grantRole(roles[i], account);
             hasRoleCache[account][roles[i]] = true;
@@ -72,10 +69,7 @@ contract RoleManager is AccessControl {
      * @param account Address to revoke roles from
      * @param roles Array of role identifiers
      */
-    function revokeRoles(address account, bytes32[] calldata roles)
-        external
-        onlyRole(SUPER_ADMIN_ROLE)
-    {
+    function revokeRoles(address account, bytes32[] calldata roles) external onlyRole(SUPER_ADMIN_ROLE) {
         for (uint256 i = 0; i < roles.length; i++) {
             _revokeRole(roles[i], account);
             hasRoleCache[account][roles[i]] = false;
@@ -88,10 +82,7 @@ contract RoleManager is AccessControl {
      * @param newRole New role identifier
      * @param adminRole Role that can manage this new role
      */
-    function addNewRole(bytes32 newRole, bytes32 adminRole)
-        external
-        onlyRole(SUPER_ADMIN_ROLE)
-    {
+    function addNewRole(bytes32 newRole, bytes32 adminRole) external onlyRole(SUPER_ADMIN_ROLE) {
         _setRoleAdmin(newRole, adminRole);
         emit RoleHierarchyUpdated(adminRole, newRole);
     }
@@ -102,11 +93,7 @@ contract RoleManager is AccessControl {
      * @param roles Array of roles to check against
      * @return hasAnyRole True if account has at least one of the roles
      */
-    function hasAnyRole(address account, bytes32[] calldata roles)
-        external
-        view
-        returns (bool)
-    {
+    function hasAnyRole(address account, bytes32[] calldata roles) external view returns (bool) {
         for (uint256 i = 0; i < roles.length; i++) {
             if (hasRole(roles[i], account)) {
                 return true;
@@ -121,11 +108,7 @@ contract RoleManager is AccessControl {
      * @param roles Array of roles to check against
      * @return hasAllRoles True if account has all roles
      */
-    function hasAllRoles(address account, bytes32[] calldata roles)
-        external
-        view
-        returns (bool)
-    {
+    function hasAllRoles(address account, bytes32[] calldata roles) external view returns (bool) {
         for (uint256 i = 0; i < roles.length; i++) {
             if (!hasRole(roles[i], account)) {
                 return false;
@@ -139,11 +122,7 @@ contract RoleManager is AccessControl {
      * @param account Address to get roles for
      * @return activeRoles Array of active role identifiers
      */
-    function getAccountRoles(address account)
-        external
-        view
-        returns (bytes32[] memory activeRoles)
-    {
+    function getAccountRoles(address account) external view returns (bytes32[] memory activeRoles) {
         bytes32[] memory allRoles = _getAllRoles();
         uint256 activeCount = 0;
 

@@ -261,11 +261,7 @@ library NFTValidationLib {
         address spender
     ) internal pure returns (ValidationParams memory params) {
         params = ValidationParams({
-            nftContract: nftContract,
-            tokenId: tokenId,
-            amount: amount,
-            owner: owner,
-            spender: spender
+            nftContract: nftContract, tokenId: tokenId, amount: amount, owner: owner, spender: spender
         });
     }
 }

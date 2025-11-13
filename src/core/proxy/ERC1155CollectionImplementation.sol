@@ -52,7 +52,7 @@ contract ERC1155CollectionImplementation is ERC1155Collection, Initializable {
     function _initializeProxyState(CollectionParams memory params) internal {
         // Initialize name and symbol for proxy pattern
         _setNameAndSymbol(params.name, params.symbol);
-        
+
         // Initialize BaseCollection state variables
         s_description = params.description;
         s_mintPrice = params.mintPrice;

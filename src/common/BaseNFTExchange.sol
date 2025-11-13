@@ -135,12 +135,7 @@ contract BaseNFTExchange is Initializable, Ownable, ReentrancyGuard, ERC165, IEx
         returns (bytes32)
     {
         // Use gas-optimized assembly version for listing ID generation
-        return GasOptimizedLibrary.generateOptimizedListingId(
-            m_contractAddress, 
-            m_tokenId, 
-            m_sender, 
-            block.timestamp
-        );
+        return GasOptimizedLibrary.generateOptimizedListingId(m_contractAddress, m_tokenId, m_sender, block.timestamp);
     }
 
     // Internal function to create a single listing
@@ -220,9 +215,7 @@ contract BaseNFTExchange is Initializable, Ownable, ReentrancyGuard, ERC165, IEx
         s_listings[m_listingId].status = ListingStatus.Sold;
 
         // Remove from active listings
-        delete s_activeListings[m_contractAddress][
-            s_listings[m_listingId].tokenId
-        ][m_seller];
+        delete s_activeListings[m_contractAddress][s_listings[m_listingId].tokenId][m_seller];
 
         // Remove from collection and seller listings
         _removeListingFromArray(s_listingsByCollection[m_contractAddress], m_listingId);
@@ -240,13 +233,23 @@ contract BaseNFTExchange is Initializable, Ownable, ReentrancyGuard, ERC165, IEx
     }
 
     // View function to get floor price (placeholder, needs oracle)
-    function getFloorPrice(address /* m_contractAddress */ ) public view virtual returns (uint256) {
+    function getFloorPrice(
+        address /* m_contractAddress */
+    )
+        public
+        view
+        virtual
+        returns (uint256)
+    {
         // Placeholder: Use an oracle (e.g., Chainlink) for real floor price
         return 1 ether; // Example: 1 ETH
     }
 
     // View function to get top trait price (placeholder, needs oracle)
-    function getTopTraitPrice(address m_contractAddress, uint256 /* m_tokenId */ )
+    function getTopTraitPrice(
+        address m_contractAddress,
+        uint256 /* m_tokenId */
+    )
         public
         view
         virtual
@@ -257,7 +260,10 @@ contract BaseNFTExchange is Initializable, Ownable, ReentrancyGuard, ERC165, IEx
     }
 
     // View function to get ladder price (placeholder, needs oracle)
-    function getLadderPrice(address m_contractAddress, uint256 /* m_tokenId */ )
+    function getLadderPrice(
+        address m_contractAddress,
+        uint256 /* m_tokenId */
+    )
         public
         view
         virtual
@@ -292,7 +298,14 @@ contract BaseNFTExchange is Initializable, Ownable, ReentrancyGuard, ERC165, IEx
     }
 
     // View function to get 24-hour volume (placeholder, needs oracle)
-    function get24hVolume(address /* m_contractAddress */ ) public view virtual returns (uint256) {
+    function get24hVolume(
+        address /* m_contractAddress */
+    )
+        public
+        view
+        virtual
+        returns (uint256)
+    {
         // Placeholder: Use oracle or off-chain data for 24h trading volume
         return 10 ether; // Example: 10 ETH
     }

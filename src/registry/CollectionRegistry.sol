@@ -87,7 +87,9 @@ contract CollectionRegistry is ICollectionRegistry, AccessControl {
         override
         returns (bool isValid, string memory tokenType)
     {
-        if (collection == address(0)) revert CollectionRegistry__ZeroAddress();
+        if (collection == address(0)) {
+            revert CollectionRegistry__ZeroAddress();
+        }
 
         isValid = s_isVerifiedCollection[collection];
         tokenType = s_collectionToTokenType[collection];
@@ -105,12 +107,7 @@ contract CollectionRegistry is ICollectionRegistry, AccessControl {
     /**
      * @inheritdoc ICollectionRegistry
      */
-    function getAllFactories()
-        external
-        view
-        override
-        returns (string[] memory tokenTypes, address[] memory factories)
-    {
+    function getAllFactories() external view override returns (string[] memory tokenTypes, address[] memory factories) {
         uint256 length = s_tokenTypes.length;
         tokenTypes = new string[](length);
         factories = new address[](length);

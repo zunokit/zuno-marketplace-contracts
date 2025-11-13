@@ -301,8 +301,9 @@ contract EndToEndTest is Test {
         vm.startPrank(user1);
 
         // Approve offer manager
-        (success,) =
-            testCollection.call(abi.encodeWithSignature("setApprovalForAll(address,bool)", address(offerManager), true));
+        (success,) = testCollection.call(
+            abi.encodeWithSignature("setApprovalForAll(address,bool)", address(offerManager), true)
+        );
         assertTrue(success);
 
         // Get offer ID (simplified - in real scenario would get from events)

@@ -15,7 +15,6 @@ interface IExchangeRegistry {
         ERC1155,
         ERC6551, // Future support for token-bound accounts
         ERC404 // Future support for semi-fungible tokens
-
     }
 
     /**

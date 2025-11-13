@@ -272,8 +272,8 @@ contract ERC721NFTExchangeTest is Test {
         listingIds[0] = listingId1;
         listingIds[1] = listingId2;
 
-        uint256 totalPrice = 1 ether + (1 ether * TAKER_FEE_BPS) / BPS_DENOMINATOR + 2 ether
-            + (2 ether * TAKER_FEE_BPS) / BPS_DENOMINATOR;
+        uint256 totalPrice = 1 ether + (1 ether * TAKER_FEE_BPS) / BPS_DENOMINATOR + 2 ether + (2 ether * TAKER_FEE_BPS)
+            / BPS_DENOMINATOR;
         vm.deal(buyer, totalPrice);
         vm.prank(buyer);
         vm.expectRevert(NFTExchange__ArrayLengthMismatch.selector);

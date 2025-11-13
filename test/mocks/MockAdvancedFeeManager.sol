@@ -33,7 +33,11 @@ contract MockAdvancedFeeManager is Ownable {
      * @return platformFee Platform fee amount
      * @return royaltyFee Royalty fee amount
      */
-    function calculateFees(uint256 price, address collection, uint256 /* tokenId */ )
+    function calculateFees(
+        uint256 price,
+        address collection,
+        uint256 /* tokenId */
+    )
         external
         view
         returns (uint256 platformFee, uint256 royaltyFee)

@@ -72,10 +72,7 @@ contract AuctionFactory is Ownable, Pausable, ReentrancyGuard {
     );
 
     event AuctionCreatedViaFactory(
-        bytes32 indexed auctionId,
-        address indexed auctionContract,
-        address indexed seller,
-        AuctionType auctionType
+        bytes32 indexed auctionId, address indexed auctionContract, address indexed seller, AuctionType auctionType
     );
 
     // ============================================================================
@@ -377,8 +374,9 @@ contract AuctionFactory is Ownable, Pausable, ReentrancyGuard {
         }
 
         // Check if this is a Dutch auction by trying to call the method
-        try DutchAuctionImplementation(auctionContract).getTimeToReservePrice(auctionId) returns (uint256 timeToReserve)
-        {
+        try DutchAuctionImplementation(auctionContract).getTimeToReservePrice(auctionId) returns (
+            uint256 timeToReserve
+        ) {
             return timeToReserve;
         } catch {
             revert Auction__UnsupportedAuctionType();
@@ -519,23 +517,23 @@ contract AuctionFactory is Ownable, Pausable, ReentrancyGuard {
      * @param auctionType Type of auction
      * @return auctionId The created auction ID
      */
-    function _initializeAuction(
-        address proxyAddress,
-        AuctionCreationParams memory params,
-        AuctionType auctionType
-    ) internal returns (bytes32 auctionId) {
+    function _initializeAuction(address proxyAddress, AuctionCreationParams memory params, AuctionType auctionType)
+        internal
+        returns (bytes32 auctionId)
+    {
         EnglishAuctionImplementation(proxyAddress).initialize(marketplaceWallet);
 
-        auctionId = IAuction(proxyAddress).createAuction(
-            params.nftContract,
-            params.tokenId,
-            params.amount,
-            params.startPrice,
-            params.reservePrice,
-            params.duration,
-            auctionType,
-            params.seller
-        );
+        auctionId = IAuction(proxyAddress)
+            .createAuction(
+                params.nftContract,
+                params.tokenId,
+                params.amount,
+                params.startPrice,
+                params.reservePrice,
+                params.duration,
+                auctionType,
+                params.seller
+            );
     }
 
     /**
@@ -550,16 +548,17 @@ contract AuctionFactory is Ownable, Pausable, ReentrancyGuard {
     {
         DutchAuctionImplementation(proxyAddress).initialize(marketplaceWallet);
 
-        auctionId = DutchAuctionImplementation(proxyAddress).createDutchAuction(
-            params.baseParams.nftContract,
-            params.baseParams.tokenId,
-            params.baseParams.amount,
-            params.baseParams.startPrice,
-            params.baseParams.reservePrice,
-            params.baseParams.duration,
-            params.priceDropPerHour,
-            params.baseParams.seller
-        );
+        auctionId = DutchAuctionImplementation(proxyAddress)
+            .createDutchAuction(
+                params.baseParams.nftContract,
+                params.baseParams.tokenId,
+                params.baseParams.amount,
+                params.baseParams.startPrice,
+                params.baseParams.reservePrice,
+                params.baseParams.duration,
+                params.priceDropPerHour,
+                params.baseParams.seller
+            );
     }
 
     /**
@@ -635,7 +634,7 @@ contract AuctionFactory is Ownable, Pausable, ReentrancyGuard {
             IAuction.Auction memory auction = IAuction(auctionContract).getAuction(auctionId);
 
             try marketplaceValidator.setNFTInAuction(auction.nftContract, auction.tokenId, auction.seller, auctionId) {}
-            catch {
+                catch {
                 // Silently fail if validator call fails
                 // This prevents auction creation from failing due to validator issues
             }
@@ -648,7 +647,7 @@ contract AuctionFactory is Ownable, Pausable, ReentrancyGuard {
     function _notifyValidatorAuctionCancelled(address nftContract, uint256 tokenId, address seller) internal {
         if (address(marketplaceValidator) != address(0)) {
             try marketplaceValidator.setNFTAvailable(nftContract, tokenId, seller) {}
-            catch {
+                catch {
                 // Silently fail if validator call fails
             }
         }

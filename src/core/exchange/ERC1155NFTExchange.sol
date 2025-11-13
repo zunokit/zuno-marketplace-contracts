@@ -79,15 +79,16 @@ contract ERC1155NFTExchange is BaseNFTExchange {
         uint256[] memory m_prices,
         uint256 m_listingDuration
     ) public {
-        BatchOperationsLib.BatchListingParams memory params = BatchOperationsLib.BatchListingParams({
-            nftContract: m_contractAddress,
-            tokenIds: m_tokenIds,
-            amounts: m_amounts,
-            prices: m_prices,
-            listingDuration: m_listingDuration,
-            seller: msg.sender,
-            spender: address(this)
-        });
+        BatchOperationsLib.BatchListingParams memory params =
+            BatchOperationsLib.BatchListingParams({
+                nftContract: m_contractAddress,
+                tokenIds: m_tokenIds,
+                amounts: m_amounts,
+                prices: m_prices,
+                listingDuration: m_listingDuration,
+                seller: msg.sender,
+                spender: address(this)
+            });
         (bool isValid, string memory errorMessage) = BatchOperationsLib.validateBatchListing(params);
         if (!isValid) {
             if (keccak256(bytes(errorMessage)) == keccak256(bytes("Array length mismatch"))) {
@@ -138,10 +139,10 @@ contract ERC1155NFTExchange is BaseNFTExchange {
 
         (address m_royaltyReceiver, uint256 m_royalty) =
             getRoyaltyInfo(s_listing.contractAddress, s_listing.tokenId, m_proportionalPrice);
-        
+
         uint256 m_takerFee;
         uint256 m_realityPrice;
-        
+
         unchecked {
             // Safe: takerFee is always <= 10000 (basis points)
             m_takerFee = (m_proportionalPrice * s_takerFee) / BPS_DENOMINATOR;
@@ -225,7 +226,9 @@ contract ERC1155NFTExchange is BaseNFTExchange {
             if (listing.status != ListingStatus.Active) {
                 revert NFTExchange__NFTNotActive();
             }
-            if (block.timestamp >= listing.listingStart + listing.listingDuration) revert NFTExchange__ListingExpired();
+            if (block.timestamp >= listing.listingStart + listing.listingDuration) {
+                revert NFTExchange__ListingExpired();
+            }
             if (listing.contractAddress != contractAddress) {
                 revert NFTExchange__ArrayLengthMismatch();
             }

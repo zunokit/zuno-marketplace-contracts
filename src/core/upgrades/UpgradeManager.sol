@@ -74,10 +74,7 @@ contract UpgradeManager is AccessControl {
      * @param featureName Name of the feature
      * @param implementation Contract address implementing the feature
      */
-    function addFeature(string calldata featureName, address implementation)
-        external
-        onlyRole(UPGRADE_ADMIN_ROLE)
-    {
+    function addFeature(string calldata featureName, address implementation) external onlyRole(UPGRADE_ADMIN_ROLE) {
         require(implementation != address(0), "UpgradeManager: Invalid implementation");
         require(features[featureName] == address(0), "UpgradeManager: Feature already exists");
 
@@ -94,10 +91,7 @@ contract UpgradeManager is AccessControl {
      * @param featureName Name of the feature
      * @param enabled Whether the feature should be enabled
      */
-    function setFeatureEnabled(string calldata featureName, bool enabled)
-        external
-        onlyRole(UPGRADE_ADMIN_ROLE)
-    {
+    function setFeatureEnabled(string calldata featureName, bool enabled) external onlyRole(UPGRADE_ADMIN_ROLE) {
         require(features[featureName] != address(0), "UpgradeManager: Feature does not exist");
         featureEnabled[featureName] = enabled;
         emit FeatureEnabled(featureName, enabled);
@@ -127,10 +121,7 @@ contract UpgradeManager is AccessControl {
      * @param moduleName Name of the module
      * @param implementation Contract address of the module
      */
-    function addModule(string calldata moduleName, address implementation)
-        external
-        onlyRole(UPGRADE_ADMIN_ROLE)
-    {
+    function addModule(string calldata moduleName, address implementation) external onlyRole(UPGRADE_ADMIN_ROLE) {
         require(implementation != address(0), "UpgradeManager: Invalid implementation");
         require(modules[moduleName] == address(0), "UpgradeManager: Module already exists");
 
@@ -147,10 +138,7 @@ contract UpgradeManager is AccessControl {
      * @param moduleName Name of the module
      * @param active Whether the module should be active
      */
-    function setModuleActive(string calldata moduleName, bool active)
-        external
-        onlyRole(UPGRADE_ADMIN_ROLE)
-    {
+    function setModuleActive(string calldata moduleName, bool active) external onlyRole(UPGRADE_ADMIN_ROLE) {
         require(modules[moduleName] != address(0), "UpgradeManager: Module does not exist");
         moduleActive[moduleName] = active;
         emit ModuleActivated(moduleName, active);
@@ -199,8 +187,7 @@ contract UpgradeManager is AccessControl {
         require(proposal.id != 0, "UpgradeManager: Proposal does not exist");
         require(!proposal.executed, "UpgradeManager: Proposal already executed");
         require(
-            block.timestamp >= proposal.proposedAt + proposal.executionDelay,
-            "UpgradeManager: Execution delay not met"
+            block.timestamp >= proposal.proposedAt + proposal.executionDelay, "UpgradeManager: Execution delay not met"
         );
 
         proposal.executed = true;
@@ -215,10 +202,7 @@ contract UpgradeManager is AccessControl {
      * @param newVersion New version number
      * @param newVersionString Human-readable version string
      */
-    function updateVersion(uint256 newVersion, string calldata newVersionString)
-        external
-        onlyRole(UPGRADE_ADMIN_ROLE)
-    {
+    function updateVersion(uint256 newVersion, string calldata newVersionString) external onlyRole(UPGRADE_ADMIN_ROLE) {
         require(newVersion > currentVersion, "UpgradeManager: Version must be higher");
 
         uint256 oldVersion = currentVersion;
@@ -237,11 +221,7 @@ contract UpgradeManager is AccessControl {
     function getAllFeatures()
         external
         view
-        returns (
-            string[] memory featureNames,
-            address[] memory implementations,
-            bool[] memory enabled
-        )
+        returns (string[] memory featureNames, address[] memory implementations, bool[] memory enabled)
     {
         uint256 length = featureList.length;
         featureNames = new string[](length);
@@ -288,11 +268,7 @@ contract UpgradeManager is AccessControl {
     function getAllModules()
         external
         view
-        returns (
-            string[] memory moduleNames,
-            address[] memory implementations,
-            bool[] memory active
-        )
+        returns (string[] memory moduleNames, address[] memory implementations, bool[] memory active)
     {
         uint256 length = moduleList.length;
         moduleNames = new string[](length);
@@ -313,11 +289,7 @@ contract UpgradeManager is AccessControl {
      * @param featureName Name of the feature
      * @return available Whether the feature exists and is enabled
      */
-    function isFeatureAvailable(string calldata featureName)
-        external
-        view
-        returns (bool available)
-    {
+    function isFeatureAvailable(string calldata featureName) external view returns (bool available) {
         return features[featureName] != address(0) && featureEnabled[featureName];
     }
 }

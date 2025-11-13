@@ -50,7 +50,7 @@ contract ERC721CollectionImplementation is ERC721Collection, Initializable {
     function _initializeCollection(CollectionParams memory params) internal {
         // Initialize name and symbol for proxy pattern
         _setNameAndSymbol(params.name, params.symbol);
-        
+
         // Initialize BaseCollection state
         s_description = params.description;
         s_mintPrice = params.mintPrice;

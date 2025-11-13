@@ -405,8 +405,9 @@ contract OfferManagerTest is Test, TestHelpers {
         vm.deal(offerer, totalAmount + 1 ether);
 
         vm.prank(offerer);
-        bytes32 offerId =
-            offerManager.createCollectionOffer{value: totalAmount}(collection, address(0), amount, quantity, expiration);
+        bytes32 offerId = offerManager.createCollectionOffer{value: totalAmount}(
+            collection, address(0), amount, quantity, expiration
+        );
 
         // Verify offer was created successfully
         (

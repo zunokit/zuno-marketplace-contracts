@@ -13,6 +13,8 @@ import "src/errors/AdvancedListingErrors.sol";
 import "src/events/AdvancedListingEvents.sol";
 import "src/core/access/MarketplaceAccessControl.sol";
 import "src/core/validation/MarketplaceValidator.sol";
+import "src/libraries/NFTTransferLib.sol";
+import "src/libraries/NFTValidationLib.sol";
 
 /**
  * @title AdvancedListingManager
@@ -816,18 +818,18 @@ contract AdvancedListingManager is Ownable, ReentrancyGuard, Pausable {
     }
 
     /**
-     * @notice Transfers NFT to buyer
+     * @notice Transfers NFT to buyer using NFTTransferLib
      */
     function _transferNFT(Listing storage listing, address buyer) internal {
-        try IERC165(listing.nftContract).supportsInterface(type(IERC721).interfaceId) returns (bool isERC721) {
-            if (isERC721) {
-                IERC721(listing.nftContract).safeTransferFrom(listing.seller, buyer, listing.tokenId);
-            } else {
-                IERC1155(listing.nftContract).safeTransferFrom(
-                    listing.seller, buyer, listing.tokenId, listing.quantity, ""
-                );
-            }
-        } catch {
+        // Create transfer parameters
+        NFTTransferLib.TransferParams memory params = NFTTransferLib.createTransferParams(
+            listing.nftContract, listing.tokenId, listing.quantity, listing.seller, buyer
+        );
+
+        // Execute transfer using library
+        NFTTransferLib.TransferResult memory result = NFTTransferLib.transferNFT(params);
+
+        if (!result.success) {
             revert AdvancedListing__TransferFailed();
         }
     }
@@ -1010,10 +1012,7 @@ contract AdvancedListingManager is Ownable, ReentrancyGuard, Pausable {
      * @param nftContract The NFT contract address
      * @param isSupported Whether to support the contract
      */
-    function setSupportedContract(address nftContract, bool isSupported)
-        external
-        onlyRole(accessControl.ADMIN_ROLE())
-    {
+    function setSupportedContract(address nftContract, bool isSupported) external onlyRole(accessControl.ADMIN_ROLE()) {
         if (nftContract == address(0)) {
             revert AdvancedListing__ZeroAddress();
         }

@@ -69,24 +69,26 @@ contract AdvancedFeeManagerTest is Test {
         uint256 salePrice = 1 ether;
 
         // Test maker fee calculation
-        (uint256 makerFee, uint256 discount) = feeManager.calculateFees(
-            user1,
-            collection1,
-            salePrice,
-            true // isMaker
-        );
+        (uint256 makerFee, uint256 discount) =
+            feeManager.calculateFees(
+                user1,
+                collection1,
+                salePrice,
+                true // isMaker
+            );
 
         // Should be 2.5% of 1 ether = 0.025 ether
         assertEq(makerFee, 0.025 ether);
         assertEq(discount, 0); // No discount for new user
 
         // Test taker fee calculation
-        (uint256 takerFee, uint256 takerDiscount) = feeManager.calculateFees(
-            user1,
-            collection1,
-            salePrice,
-            false // isTaker
-        );
+        (uint256 takerFee, uint256 takerDiscount) =
+            feeManager.calculateFees(
+                user1,
+                collection1,
+                salePrice,
+                false // isTaker
+            );
 
         assertEq(takerFee, 0.025 ether);
         assertEq(takerDiscount, 0);

@@ -404,7 +404,13 @@ abstract contract E2E_BaseSetup is Test {
     // HELPER FUNCTIONS - NFT OPERATIONS
     // ============================================================================
 
-    function mintERC721(address collection, address to, uint256 /* tokenId */ ) internal {
+    function mintERC721(
+        address collection,
+        address to,
+        uint256 /* tokenId */
+    )
+        internal
+    {
         vm.prank(to);
         ERC721Collection(collection).mint{value: 0.1 ether}(to);
     }
@@ -415,7 +421,9 @@ abstract contract E2E_BaseSetup is Test {
         uint256,
         /* tokenId */
         uint256 amount
-    ) internal {
+    )
+        internal
+    {
         vm.prank(to);
         ERC1155Collection(collection).mint{value: 0.05 ether * amount}(to, amount);
     }

@@ -209,8 +209,7 @@ contract BaseCollectionCoverageTest is Test {
         (
             uint256 currentTime,
             uint256 mintStartTime,
-            uint256 allowlistStageEnd,
-            ,
+            uint256 allowlistStageEnd,,
             uint256 currentMintPrice,
             uint256 allowlistPrice,
             uint256 publicPrice,

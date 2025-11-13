@@ -31,10 +31,7 @@ contract AuctionFactoryTest is AuctionTestHelpers {
     );
 
     event AuctionCreatedViaFactory(
-        bytes32 indexed auctionId,
-        address indexed auctionContract,
-        address indexed seller,
-        AuctionType auctionType
+        bytes32 indexed auctionId, address indexed auctionContract, address indexed seller, AuctionType auctionType
     );
 
     // ============================================================================

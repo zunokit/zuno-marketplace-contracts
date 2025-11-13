@@ -21,7 +21,6 @@ interface IMarketplaceValidator {
         IN_AUCTION, // NFT is in auction
         SOLD, // NFT has been sold
         CANCELLED // Listing/auction was cancelled
-
     }
 
     // ============================================================================
@@ -75,10 +74,7 @@ interface IMarketplaceValidator {
      * @param owner Owner of the NFT
      * @return inAuction Whether the NFT is in auction
      */
-    function isNFTInAuction(address nftContract, uint256 tokenId, address owner)
-        external
-        view
-        returns (bool inAuction);
+    function isNFTInAuction(address nftContract, uint256 tokenId, address owner) external view returns (bool inAuction);
 
     /**
      * @notice Gets the current status of an NFT
@@ -87,10 +83,7 @@ interface IMarketplaceValidator {
      * @param owner Owner of the NFT
      * @return status Current status of the NFT
      */
-    function getNFTStatus(address nftContract, uint256 tokenId, address owner)
-        external
-        view
-        returns (NFTStatus status);
+    function getNFTStatus(address nftContract, uint256 tokenId, address owner) external view returns (NFTStatus status);
 
     // ============================================================================
     // STATE MANAGEMENT FUNCTIONS

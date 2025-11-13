@@ -261,12 +261,7 @@ contract UserHubTest is Test {
     // ============================================================================
 
     function test_UpdateAdditionalContracts_Success() public {
-        userHub.updateAdditionalContracts(
-            listingValidator,
-            emergencyManager,
-            accessControl,
-            historyTracker
-        );
+        userHub.updateAdditionalContracts(listingValidator, emergencyManager, accessControl, historyTracker);
 
         assertEq(userHub.listingValidator(), listingValidator);
         assertEq(userHub.emergencyManager(), emergencyManager);
@@ -280,20 +275,11 @@ contract UserHubTest is Test {
 
     function test_GetAdditionalAddresses_Success() public {
         // First update the addresses
-        userHub.updateAdditionalContracts(
-            listingValidator,
-            emergencyManager,
-            accessControl,
-            historyTracker
-        );
+        userHub.updateAdditionalContracts(listingValidator, emergencyManager, accessControl, historyTracker);
 
         // Then get them all at once
-        (
-            address _listingValidator,
-            address _emergencyManager,
-            address _accessControl,
-            address _historyTracker
-        ) = userHub.getAdditionalAddresses();
+        (address _listingValidator, address _emergencyManager, address _accessControl, address _historyTracker) =
+            userHub.getAdditionalAddresses();
 
         assertEq(_listingValidator, listingValidator);
         assertEq(_emergencyManager, emergencyManager);
@@ -302,12 +288,8 @@ contract UserHubTest is Test {
     }
 
     function test_GetAdditionalAddresses_BeforeUpdate_ReturnsZeroAddresses() public view {
-        (
-            address _listingValidator,
-            address _emergencyManager,
-            address _accessControl,
-            address _historyTracker
-        ) = userHub.getAdditionalAddresses();
+        (address _listingValidator, address _emergencyManager, address _accessControl, address _historyTracker) =
+            userHub.getAdditionalAddresses();
 
         assertEq(_listingValidator, address(0));
         assertEq(_emergencyManager, address(0));
@@ -320,12 +302,7 @@ contract UserHubTest is Test {
     // ============================================================================
 
     function test_GetListingValidator_Success() public {
-        userHub.updateAdditionalContracts(
-            listingValidator,
-            emergencyManager,
-            accessControl,
-            historyTracker
-        );
+        userHub.updateAdditionalContracts(listingValidator, emergencyManager, accessControl, historyTracker);
 
         address result = userHub.getListingValidator();
         assertEq(result, listingValidator);
@@ -341,12 +318,7 @@ contract UserHubTest is Test {
     // ============================================================================
 
     function test_GetEmergencyManager_Success() public {
-        userHub.updateAdditionalContracts(
-            listingValidator,
-            emergencyManager,
-            accessControl,
-            historyTracker
-        );
+        userHub.updateAdditionalContracts(listingValidator, emergencyManager, accessControl, historyTracker);
 
         address result = userHub.getEmergencyManager();
         assertEq(result, emergencyManager);
@@ -362,12 +334,7 @@ contract UserHubTest is Test {
     // ============================================================================
 
     function test_GetAccessControl_Success() public {
-        userHub.updateAdditionalContracts(
-            listingValidator,
-            emergencyManager,
-            accessControl,
-            historyTracker
-        );
+        userHub.updateAdditionalContracts(listingValidator, emergencyManager, accessControl, historyTracker);
 
         address result = userHub.getAccessControl();
         assertEq(result, accessControl);
@@ -383,12 +350,7 @@ contract UserHubTest is Test {
     // ============================================================================
 
     function test_GetHistoryTracker_Success() public {
-        userHub.updateAdditionalContracts(
-            listingValidator,
-            emergencyManager,
-            accessControl,
-            historyTracker
-        );
+        userHub.updateAdditionalContracts(listingValidator, emergencyManager, accessControl, historyTracker);
 
         address result = userHub.getHistoryTracker();
         assertEq(result, historyTracker);
@@ -422,12 +384,7 @@ contract UserHubTest is Test {
     // ============================================================================
 
     function test_GetAllRegistries_Success() public view {
-        (
-            address exchange,
-            address collection,
-            address fee,
-            address auction
-        ) = userHub.getAllRegistries();
+        (address exchange, address collection, address fee, address auction) = userHub.getAllRegistries();
 
         assertEq(exchange, address(exchangeRegistry));
         assertEq(collection, address(collectionRegistry));
@@ -440,11 +397,7 @@ contract UserHubTest is Test {
     // ============================================================================
 
     function test_GetSystemStatus_Success() public view {
-        (
-            bool isHealthy,
-            address[] memory activeContracts,
-            uint256 timestamp
-        ) = userHub.getSystemStatus();
+        (bool isHealthy, address[] memory activeContracts, uint256 timestamp) = userHub.getSystemStatus();
 
         assertTrue(isHealthy);
         assertEq(activeContracts.length, 6);
@@ -468,12 +421,7 @@ contract UserHubTest is Test {
     }
 
     function test_VerifyCollection_WithAccessControl_ReturnsTrue() public {
-        userHub.updateAdditionalContracts(
-            listingValidator,
-            emergencyManager,
-            accessControl,
-            historyTracker
-        );
+        userHub.updateAdditionalContracts(listingValidator, emergencyManager, accessControl, historyTracker);
 
         address someCollection = address(0x456);
         bool result = userHub.verifyCollection(someCollection);
@@ -490,12 +438,7 @@ contract UserHubTest is Test {
     }
 
     function test_IsPaused_WithEmergencyManager_ReturnsFalse() public {
-        userHub.updateAdditionalContracts(
-            listingValidator,
-            emergencyManager,
-            accessControl,
-            historyTracker
-        );
+        userHub.updateAdditionalContracts(listingValidator, emergencyManager, accessControl, historyTracker);
 
         bool result = userHub.isPaused();
         assertFalse(result); // Placeholder implementation returns false
@@ -525,20 +468,11 @@ contract UserHubTest is Test {
         assertEq(_offerManager, offerManager);
 
         // Step 2: Update additional contracts
-        userHub.updateAdditionalContracts(
-            listingValidator,
-            emergencyManager,
-            accessControl,
-            historyTracker
-        );
+        userHub.updateAdditionalContracts(listingValidator, emergencyManager, accessControl, historyTracker);
 
         // Step 3: Get additional addresses
-        (
-            address _listingValidator,
-            address _emergencyManager,
-            address _accessControl,
-            address _historyTracker
-        ) = userHub.getAdditionalAddresses();
+        (address _listingValidator, address _emergencyManager, address _accessControl, address _historyTracker) =
+            userHub.getAdditionalAddresses();
 
         // Verify additional addresses
         assertEq(_listingValidator, listingValidator);
@@ -557,20 +491,10 @@ contract UserHubTest is Test {
 
     function test_AllGettersReturnConsistentResults() public {
         // Update additional contracts
-        userHub.updateAdditionalContracts(
-            listingValidator,
-            emergencyManager,
-            accessControl,
-            historyTracker
-        );
+        userHub.updateAdditionalContracts(listingValidator, emergencyManager, accessControl, historyTracker);
 
         // Get via batch function
-        (
-            address batch_lv,
-            address batch_em,
-            address batch_ac,
-            address batch_ht
-        ) = userHub.getAdditionalAddresses();
+        (address batch_lv, address batch_em, address batch_ac, address batch_ht) = userHub.getAdditionalAddresses();
 
         // Get via individual getters
         address individual_lv = userHub.getListingValidator();

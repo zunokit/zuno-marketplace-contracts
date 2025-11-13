@@ -119,7 +119,6 @@ contract CollectionVerifier is Ownable, ReentrancyGuard, Pausable {
         REJECTED, // Verification rejected
         EXPIRED, // Verification expired
         REVOKED // Verification revoked
-
     }
 
     // ============================================================================

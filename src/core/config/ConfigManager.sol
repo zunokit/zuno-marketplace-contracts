@@ -58,10 +58,7 @@ contract ConfigManager is AccessControl {
 
     // Events
     event ConfigSet(
-        string indexed key,
-        ConfigCategory indexed category,
-        ConfigType indexed valueType,
-        address updatedBy
+        string indexed key, ConfigCategory indexed category, ConfigType indexed valueType, address updatedBy
     );
     event ConfigRemoved(string indexed key, address removedBy);
 
@@ -78,12 +75,10 @@ contract ConfigManager is AccessControl {
     /**
      * @notice Set a uint256 configuration value
      */
-    function setUintConfig(
-        string calldata key,
-        uint256 value,
-        ConfigCategory category,
-        string calldata description
-    ) external onlyRole(CONFIG_ADMIN_ROLE) {
+    function setUintConfig(string calldata key, uint256 value, ConfigCategory category, string calldata description)
+        external
+        onlyRole(CONFIG_ADMIN_ROLE)
+    {
         _setConfigMetadata(key, category, ConfigType.UINT256, description);
         uintConfigs[key] = value;
         emit ConfigSet(key, category, ConfigType.UINT256, msg.sender);
@@ -92,12 +87,10 @@ contract ConfigManager is AccessControl {
     /**
      * @notice Set a boolean configuration value
      */
-    function setBoolConfig(
-        string calldata key,
-        bool value,
-        ConfigCategory category,
-        string calldata description
-    ) external onlyRole(CONFIG_ADMIN_ROLE) {
+    function setBoolConfig(string calldata key, bool value, ConfigCategory category, string calldata description)
+        external
+        onlyRole(CONFIG_ADMIN_ROLE)
+    {
         _setConfigMetadata(key, category, ConfigType.BOOL, description);
         boolConfigs[key] = value;
         emit ConfigSet(key, category, ConfigType.BOOL, msg.sender);
@@ -106,12 +99,10 @@ contract ConfigManager is AccessControl {
     /**
      * @notice Set an address configuration value
      */
-    function setAddressConfig(
-        string calldata key,
-        address value,
-        ConfigCategory category,
-        string calldata description
-    ) external onlyRole(CONFIG_ADMIN_ROLE) {
+    function setAddressConfig(string calldata key, address value, ConfigCategory category, string calldata description)
+        external
+        onlyRole(CONFIG_ADMIN_ROLE)
+    {
         _setConfigMetadata(key, category, ConfigType.ADDRESS, description);
         addressConfigs[key] = value;
         emit ConfigSet(key, category, ConfigType.ADDRESS, msg.sender);
@@ -134,12 +125,10 @@ contract ConfigManager is AccessControl {
     /**
      * @notice Set a bytes32 configuration value
      */
-    function setBytes32Config(
-        string calldata key,
-        bytes32 value,
-        ConfigCategory category,
-        string calldata description
-    ) external onlyRole(CONFIG_ADMIN_ROLE) {
+    function setBytes32Config(string calldata key, bytes32 value, ConfigCategory category, string calldata description)
+        external
+        onlyRole(CONFIG_ADMIN_ROLE)
+    {
         _setConfigMetadata(key, category, ConfigType.BYTES32, description);
         bytes32Configs[key] = value;
         emit ConfigSet(key, category, ConfigType.BYTES32, msg.sender);
@@ -192,11 +181,7 @@ contract ConfigManager is AccessControl {
     /**
      * @notice Get all configurations in a category
      */
-    function getConfigsByCategory(ConfigCategory category)
-        external
-        view
-        returns (string[] memory keys)
-    {
+    function getConfigsByCategory(ConfigCategory category) external view returns (string[] memory keys) {
         return configsByCategory[category];
     }
 
@@ -230,16 +215,8 @@ contract ConfigManager is AccessControl {
         )
     {
         ConfigEntry memory entry = configMetadata[key];
-        return (
-            entry.category,
-            entry.valueType,
-            entry.description,
-            entry.lastUpdated,
-            entry.updatedBy,
-            entry.exists
-        );
+        return (entry.category, entry.valueType, entry.description, entry.lastUpdated, entry.updatedBy, entry.exists);
     }
-
 
     /**
      * @notice Initialize default configuration values
@@ -292,12 +269,9 @@ contract ConfigManager is AccessControl {
     /**
      * @notice Helper to set and store uint config during initialization
      */
-    function _setAndStoreUint(
-        string memory key,
-        uint256 value,
-        ConfigCategory category,
-        string memory description
-    ) internal {
+    function _setAndStoreUint(string memory key, uint256 value, ConfigCategory category, string memory description)
+        internal
+    {
         uintConfigs[key] = value;
         configMetadata[key] = ConfigEntry({
             category: category,
@@ -314,12 +288,9 @@ contract ConfigManager is AccessControl {
     /**
      * @notice Helper to set and store bool config during initialization
      */
-    function _setAndStoreBool(
-        string memory key,
-        bool value,
-        ConfigCategory category,
-        string memory description
-    ) internal {
+    function _setAndStoreBool(string memory key, bool value, ConfigCategory category, string memory description)
+        internal
+    {
         boolConfigs[key] = value;
         configMetadata[key] = ConfigEntry({
             category: category,

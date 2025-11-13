@@ -132,12 +132,12 @@ contract AdvancedRoyaltyManagerTest is Test, TestHelpers {
 
         // Calculate royalties for 1 ETH sale
         uint256 salePrice = 1 ether;
-        (uint256 totalRoyalty, address[] memory recipientAddresses, uint256[] memory amounts) = royaltyManager
-            .calculateAndDistributeRoyalties(
-            collection,
-            1, // tokenId
-            salePrice
-        );
+        (uint256 totalRoyalty, address[] memory recipientAddresses, uint256[] memory amounts) =
+            royaltyManager.calculateAndDistributeRoyalties(
+                collection,
+                1, // tokenId
+                salePrice
+            );
 
         // Verify calculations
         assertEq(totalRoyalty, 0.05 ether); // 5% total
@@ -157,10 +157,7 @@ contract AdvancedRoyaltyManagerTest is Test, TestHelpers {
             new AdvancedRoyaltyManager.RoyaltyRecipient[](1);
 
         invalidRecipients[0] = AdvancedRoyaltyManager.RoyaltyRecipient({
-            recipient: address(0),
-            basisPoints: 300,
-            role: "creator",
-            isActive: true
+            recipient: address(0), basisPoints: 300, role: "creator", isActive: true
         });
 
         vm.prank(admin);
@@ -187,10 +184,7 @@ contract AdvancedRoyaltyManagerTest is Test, TestHelpers {
         AdvancedRoyaltyManager.RoyaltyRecipient[] memory recipients = new AdvancedRoyaltyManager.RoyaltyRecipient[](1);
 
         recipients[0] = AdvancedRoyaltyManager.RoyaltyRecipient({
-            recipient: creator1,
-            basisPoints: 300,
-            role: "creator",
-            isActive: true
+            recipient: creator1, basisPoints: 300, role: "creator", isActive: true
         });
 
         // Test unauthorized access
@@ -251,10 +245,7 @@ contract AdvancedRoyaltyManagerTest is Test, TestHelpers {
         AdvancedRoyaltyManager.RoyaltyRecipient[] memory recipients = new AdvancedRoyaltyManager.RoyaltyRecipient[](2);
 
         recipients[0] = AdvancedRoyaltyManager.RoyaltyRecipient({
-            recipient: creator1,
-            basisPoints: 300,
-            role: "creator",
-            isActive: true
+            recipient: creator1, basisPoints: 300, role: "creator", isActive: true
         });
 
         recipients[1] = AdvancedRoyaltyManager.RoyaltyRecipient({
@@ -285,10 +276,7 @@ contract AdvancedRoyaltyManagerTest is Test, TestHelpers {
         AdvancedRoyaltyManager.RoyaltyRecipient[] memory recipients = new AdvancedRoyaltyManager.RoyaltyRecipient[](1);
 
         recipients[0] = AdvancedRoyaltyManager.RoyaltyRecipient({
-            recipient: creator1,
-            basisPoints: basisPoints,
-            role: "creator",
-            isActive: true
+            recipient: creator1, basisPoints: basisPoints, role: "creator", isActive: true
         });
 
         vm.prank(admin);

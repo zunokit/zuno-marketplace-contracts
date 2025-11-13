@@ -112,7 +112,9 @@ contract ERC721NFTExchange is BaseNFTExchange {
             bytes32 listingId = _generateListingId(m_contractAddress, m_tokenIds[i], msg.sender);
             _createListing(m_contractAddress, m_tokenIds[i], m_prices[i], m_listingDuration, 1, listingId);
             emit NFTListed(listingId, m_contractAddress, m_tokenIds[i], msg.sender, m_prices[i]);
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
     }
 
@@ -121,10 +123,10 @@ contract ERC721NFTExchange is BaseNFTExchange {
         Listing storage s_listing = s_listings[m_listingId];
         (address m_royaltyReceiver, uint256 m_royalty) =
             getRoyaltyInfo(s_listing.contractAddress, s_listing.tokenId, s_listing.price);
-        
+
         uint256 m_takerFee;
         uint256 m_realityPrice;
-        
+
         unchecked {
             // Safe: takerFee is always <= 10000 (basis points)
             m_takerFee = (s_listing.price * s_takerFee) / BPS_DENOMINATOR;
@@ -215,7 +217,9 @@ contract ERC721NFTExchange is BaseNFTExchange {
             if (listing.status != ListingStatus.Active) {
                 revert NFTExchange__NFTNotActive();
             }
-            if (block.timestamp >= listing.listingStart + listing.listingDuration) revert NFTExchange__ListingExpired();
+            if (block.timestamp >= listing.listingStart + listing.listingDuration) {
+                revert NFTExchange__ListingExpired();
+            }
 
             BatchPurchaseData memory data = _calculatePurchaseData(listing);
 
@@ -242,7 +246,9 @@ contract ERC721NFTExchange is BaseNFTExchange {
             if (listing.status != ListingStatus.Active) {
                 revert NFTExchange__NFTNotActive();
             }
-            if (block.timestamp >= listing.listingStart + listing.listingDuration) revert NFTExchange__ListingExpired();
+            if (block.timestamp >= listing.listingStart + listing.listingDuration) {
+                revert NFTExchange__ListingExpired();
+            }
 
             BatchPurchaseData memory data = _calculatePurchaseData(listing);
             totalPrice += data.realityPrice;

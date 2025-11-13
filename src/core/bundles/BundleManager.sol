@@ -14,6 +14,8 @@ import "src/core/access/MarketplaceAccessControl.sol";
 import "src/core/fees/AdvancedFeeManager.sol";
 import "src/errors/NFTExchangeErrors.sol";
 import "src/events/NFTExchangeEvents.sol";
+import "src/libraries/NFTTransferLib.sol";
+import "src/libraries/NFTValidationLib.sol";
 
 /**
  * @title BundleManager
@@ -624,7 +626,7 @@ contract BundleManager is Ownable, ReentrancyGuard, Pausable, IERC1155Receiver, 
     }
 
     /**
-     * @notice Validates ownership and escrows NFT
+     * @notice Validates ownership and escrows NFT using NFTTransferLib
      */
     function _validateAndEscrowNFT(BundleItem calldata item, address owner) internal {
         if (item.tokenType == TokenType.ERC721) {
@@ -632,24 +634,34 @@ contract BundleManager is Ownable, ReentrancyGuard, Pausable, IERC1155Receiver, 
             if (nft.ownerOf(item.tokenId) != owner) {
                 revert NFTExchange__NotTheOwner();
             }
-            nft.transferFrom(owner, address(this), item.tokenId);
         } else {
             IERC1155 nft = IERC1155(item.collection);
             if (nft.balanceOf(owner, item.tokenId) < item.amount) {
                 revert NFTExchange__InsufficientBalance();
             }
-            nft.safeTransferFrom(owner, address(this), item.tokenId, item.amount, "");
+        }
+
+        // Transfer to escrow using library
+        NFTTransferLib.TransferParams memory params =
+            NFTTransferLib.createTransferParams(item.collection, item.tokenId, item.amount, owner, address(this));
+
+        NFTTransferLib.TransferResult memory result = NFTTransferLib.transferNFT(params);
+        if (!result.success) {
+            revert NFTExchange__TransferToSellerFailed();
         }
     }
 
     /**
-     * @notice Transfers NFT from escrow to recipient
+     * @notice Transfers NFT from escrow to recipient using NFTTransferLib
      */
     function _transferNFTFromEscrow(BundleItem memory item, address recipient) internal {
-        if (item.tokenType == TokenType.ERC721) {
-            IERC721(item.collection).transferFrom(address(this), recipient, item.tokenId);
-        } else {
-            IERC1155(item.collection).safeTransferFrom(address(this), recipient, item.tokenId, item.amount, "");
+        // Transfer from escrow using library
+        NFTTransferLib.TransferParams memory params =
+            NFTTransferLib.createTransferParams(item.collection, item.tokenId, item.amount, address(this), recipient);
+
+        NFTTransferLib.TransferResult memory result = NFTTransferLib.transferNFT(params);
+        if (!result.success) {
+            revert NFTExchange__TransferToSellerFailed();
         }
     }
 

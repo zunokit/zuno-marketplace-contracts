@@ -312,8 +312,9 @@ contract EmergencyManager is Ownable, Pausable, ReentrancyGuard {
      */
     function _resetSingleNFTStatus(address nftContract, uint256 tokenId, address owner) internal {
         try marketplaceValidator.emergencyResetNFTStatus(nftContract, tokenId, owner) {
-            // Success - status reset
-        } catch {
+        // Success - status reset
+        }
+            catch {
             // Log but don't revert to allow partial success
             // Could emit a specific event for failed resets if needed
         }

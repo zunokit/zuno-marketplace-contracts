@@ -218,9 +218,8 @@ library NFTTransferLib {
      * @return result Transfer result
      */
     function _batchTransferERC1155(BatchTransferParams memory params) private returns (TransferResult memory result) {
-        try IERC1155(params.nftContract).safeBatchTransferFrom(
-            params.from, params.to, params.tokenIds, params.amounts, ""
-        ) {
+        try IERC1155(params.nftContract)
+            .safeBatchTransferFrom(params.from, params.to, params.tokenIds, params.amounts, "") {
             result.success = true;
             result.transferredCount = params.tokenIds.length;
         } catch Error(string memory reason) {

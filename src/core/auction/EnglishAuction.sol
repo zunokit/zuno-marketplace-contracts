@@ -497,12 +497,7 @@ contract EnglishAuction is BaseAuction {
      * @param bidder Address of the bidder
      * @return refundAmount Amount available for refund
      */
-    function getPendingRefund(bytes32 auctionId, address bidder)
-        external
-        view
-        override
-        returns (uint256 refundAmount)
-    {
+    function getPendingRefund(bytes32 auctionId, address bidder) external view override returns (uint256 refundAmount) {
         return pendingRefunds[auctionId][bidder];
     }
 }

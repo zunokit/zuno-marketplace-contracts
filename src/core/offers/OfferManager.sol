@@ -14,6 +14,8 @@ import "src/core/fees/AdvancedFeeManager.sol";
 // Note: OfferManager has its own Offer struct with different fields, keeping local version
 import "src/errors/NFTExchangeErrors.sol";
 import "src/events/NFTExchangeEvents.sol";
+import "src/libraries/NFTTransferLib.sol";
+import "src/libraries/NFTValidationLib.sol";
 
 /**
  * @title OfferManager
@@ -390,10 +392,7 @@ contract OfferManager is Ownable, ReentrancyGuard, Pausable {
 
         // Set progress information
         collectionOfferProgress[offerId] = CollectionOfferProgress({
-            filled: 0,
-            expiration: expiration,
-            createdAt: block.timestamp,
-            paymentToken: paymentToken
+            filled: 0, expiration: expiration, createdAt: block.timestamp, paymentToken: paymentToken
         });
 
         // Update mappings
@@ -900,18 +899,22 @@ contract OfferManager is Ownable, ReentrancyGuard, Pausable {
     }
 
     /**
-     * @notice Transfers NFT from seller to buyer
+     * @notice Transfers NFT from seller to buyer using NFTTransferLib
      */
     function _transferNFT(address collection, uint256 tokenId, address from, address to) internal {
-        // Auto-detect NFT standard and transfer
-        try IERC721(collection).supportsInterface(0x80ac58cd) returns (bool isERC721) {
-            if (isERC721) {
-                IERC721(collection).safeTransferFrom(from, to, tokenId);
-            } else {
-                // Assume ERC1155 with amount 1 for single NFT offers
-                IERC1155(collection).safeTransferFrom(from, to, tokenId, 1, "");
-            }
-        } catch {
+        // Create transfer parameters (amount=1 for single NFT offers)
+        NFTTransferLib.TransferParams memory params = NFTTransferLib.createTransferParams(
+            collection,
+            tokenId,
+            1, // Single NFT offer
+            from,
+            to
+        );
+
+        // Execute transfer using library
+        NFTTransferLib.TransferResult memory result = NFTTransferLib.transferNFT(params);
+
+        if (!result.success) {
             revert NFTExchange__TransferToSellerFailed();
         }
     }

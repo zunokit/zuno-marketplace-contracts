@@ -125,5 +125,3 @@ struct AuctionValidationResult {
 // Default minimum bid increment (5% = 500 basis points)
 uint256 constant DEFAULT_MIN_BID_INCREMENT = 500;
 
-
-

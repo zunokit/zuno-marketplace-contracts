@@ -325,5 +325,6 @@ contract MockERC2981Contract is IERC2981 {
  * @notice Mock contract that doesn't implement any royalty standards
  */
 contract MockInvalidContract {
-// Empty contract for testing fallback behavior
-}
+    // Empty contract for testing fallback behavior
+
+    }

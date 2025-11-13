@@ -10,6 +10,8 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {RoyaltyLib} from "src/libraries/RoyaltyLib.sol";
+import {NFTTransferLib} from "src/libraries/NFTTransferLib.sol";
+import {NFTValidationLib} from "src/libraries/NFTValidationLib.sol";
 import {
     Auction,
     Bid,
@@ -299,10 +301,7 @@ abstract contract BaseAuction is IAuction, ReentrancyGuard, Pausable, Ownable {
     /**
      * @notice Validates NFT ownership and approval
      */
-    function _validateNFTOwnership(address nftContract, uint256 tokenId, uint256 amount, address seller)
-        internal
-        view
-    {
+    function _validateNFTOwnership(address nftContract, uint256 tokenId, uint256 amount, address seller) internal view {
         // Check if it's ERC721 or ERC1155
         try IERC721(nftContract).supportsInterface(0x80ac58cd) returns (bool isERC721) {
             if (isERC721) {
@@ -461,7 +460,7 @@ abstract contract BaseAuction is IAuction, ReentrancyGuard, Pausable, Ownable {
     {
         if (address(marketplaceValidator) != address(0)) {
             try marketplaceValidator.setNFTInAuction(nftContract, tokenId, seller, auctionId) {}
-            catch {
+                catch {
                 // Silently fail if validator call fails
                 // This prevents auction creation from failing due to validator issues
             }
@@ -474,7 +473,7 @@ abstract contract BaseAuction is IAuction, ReentrancyGuard, Pausable, Ownable {
     function _notifyValidatorAuctionCancelled(address nftContract, uint256 tokenId, address seller) internal {
         if (address(marketplaceValidator) != address(0)) {
             try marketplaceValidator.setNFTAvailable(nftContract, tokenId, seller) {}
-            catch {
+                catch {
                 // Silently fail if validator call fails
             }
         }
@@ -488,7 +487,7 @@ abstract contract BaseAuction is IAuction, ReentrancyGuard, Pausable, Ownable {
     {
         if (address(marketplaceValidator) != address(0)) {
             try marketplaceValidator.setNFTSold(nftContract, tokenId, oldOwner, newOwner) {}
-            catch {
+                catch {
                 // Silently fail if validator call fails
             }
         }
@@ -575,13 +574,7 @@ abstract contract BaseAuction is IAuction, ReentrancyGuard, Pausable, Ownable {
      * @notice Gets pending refund amount for a bidder
      * @return refundAmount Amount available for refund
      */
-    function getPendingRefund(bytes32, address)
-        external
-        view
-        virtual
-        override
-        returns (uint256 refundAmount)
-    {
+    function getPendingRefund(bytes32, address) external view virtual override returns (uint256 refundAmount) {
         // This will be implemented by child contracts
         return 0;
     }
@@ -780,7 +773,7 @@ abstract contract BaseAuction is IAuction, ReentrancyGuard, Pausable, Ownable {
     }
 
     /**
-     * @notice Transfers NFT from seller to buyer
+     * @notice Transfers NFT from seller to buyer using NFTTransferLib
      * @param auction The auction details
      * @param to Address to transfer NFT to
      */
@@ -802,16 +795,13 @@ abstract contract BaseAuction is IAuction, ReentrancyGuard, Pausable, Ownable {
                 revert Auction__NFTTransferFailed();
             }
         } else {
-            // Direct transfer for standalone auction contracts
-            try IERC721(auction.nftContract).supportsInterface(0x80ac58cd) returns (bool isERC721) {
-                if (isERC721) {
-                    IERC721(auction.nftContract).transferFrom(auction.seller, to, auction.tokenId);
-                } else {
-                    IERC1155(auction.nftContract).safeTransferFrom(
-                        auction.seller, to, auction.tokenId, auction.amount, ""
-                    );
-                }
-            } catch {
+            // Direct transfer for standalone auction contracts using NFTTransferLib
+            NFTTransferLib.TransferParams memory params = NFTTransferLib.createTransferParams(
+                auction.nftContract, auction.tokenId, auction.amount, auction.seller, to
+            );
+
+            NFTTransferLib.TransferResult memory result = NFTTransferLib.transferNFT(params);
+            if (!result.success) {
                 revert Auction__NFTTransferFailed();
             }
         }
@@ -866,7 +856,7 @@ abstract contract BaseAuction is IAuction, ReentrancyGuard, Pausable, Ownable {
     function emergencyResetNFTStatus(address nftContract, uint256 tokenId, address owner) external onlyOwner {
         if (address(marketplaceValidator) != address(0)) {
             try marketplaceValidator.emergencyResetNFTStatus(nftContract, tokenId, owner) {}
-            catch {
+                catch {
                 // Silently fail if validator call fails
             }
         }

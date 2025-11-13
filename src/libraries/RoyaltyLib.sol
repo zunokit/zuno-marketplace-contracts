@@ -217,11 +217,7 @@ library RoyaltyLib {
 
         uint256 royaltyAmount = (params.salePrice * royaltyFee) / 10000;
         return RoyaltyInfo({
-            receiver: owner,
-            amount: royaltyAmount,
-            rate: royaltyFee,
-            hasRoyalty: true,
-            source: "BaseCollection"
+            receiver: owner, amount: royaltyAmount, rate: royaltyFee, hasRoyalty: true, source: "BaseCollection"
         });
     }
 
@@ -288,11 +284,7 @@ library RoyaltyLib {
         }
 
         return RoyaltyInfo({
-            receiver: receiver,
-            amount: royaltyAmount,
-            rate: royaltyRate,
-            hasRoyalty: true,
-            source: "ERC2981"
+            receiver: receiver, amount: royaltyAmount, rate: royaltyRate, hasRoyalty: true, source: "ERC2981"
         });
     }
 
@@ -385,10 +377,7 @@ library RoyaltyLib {
         returns (RoyaltyParams memory params)
     {
         return RoyaltyParams({
-            nftContract: nftContract,
-            tokenId: tokenId,
-            salePrice: salePrice,
-            maxRoyaltyRate: maxRoyaltyRate
+            nftContract: nftContract, tokenId: tokenId, salePrice: salePrice, maxRoyaltyRate: maxRoyaltyRate
         });
     }
 }

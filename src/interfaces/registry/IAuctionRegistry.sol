@@ -14,7 +14,6 @@ interface IAuctionRegistry {
         ENGLISH, // Traditional ascending bid auction
         DUTCH, // Descending price auction
         SEALED_BID // Future: sealed bid auction
-
     }
 
     /**

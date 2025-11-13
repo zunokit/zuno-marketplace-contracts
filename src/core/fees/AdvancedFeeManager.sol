@@ -60,7 +60,7 @@ contract AdvancedFeeManager is Ownable, ReentrancyGuard, Pausable {
     // ============================================================================
     // STRUCTS - Now imported from src/types/FeeTypes.sol
     // ============================================================================
-    // Using FeeConfig, FeeTierConfig, FeeTier, CollectionFeeOverride, 
+    // Using FeeConfig, FeeTierConfig, FeeTier, CollectionFeeOverride,
     // UserVolumeData, VIPStatus from FeeTypes.sol
 
     // ============================================================================

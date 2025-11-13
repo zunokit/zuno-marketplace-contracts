@@ -201,11 +201,7 @@ library BatchOperationsLib {
      * @param params Batch listing parameters
      * @return listingIds Array of generated listing IDs
      */
-    function processBatchListing(BatchListingParams memory params)
-        internal
-        view
-        returns (bytes32[] memory listingIds)
-    {
+    function processBatchListing(BatchListingParams memory params) internal view returns (bytes32[] memory listingIds) {
         listingIds = new bytes32[](params.tokenIds.length);
 
         for (uint256 i = 0; i < params.tokenIds.length; i++) {

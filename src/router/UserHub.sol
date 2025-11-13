@@ -41,12 +41,8 @@ contract UserHub {
         address _offerManager
     ) {
         if (
-            _exchangeRegistry == address(0) ||
-            _collectionRegistry == address(0) ||
-            _feeRegistry == address(0) ||
-            _auctionRegistry == address(0) ||
-            _bundleManager == address(0) ||
-            _offerManager == address(0)
+            _exchangeRegistry == address(0) || _collectionRegistry == address(0) || _feeRegistry == address(0)
+                || _auctionRegistry == address(0) || _bundleManager == address(0) || _offerManager == address(0)
         ) {
             revert UserHub__ZeroAddress();
         }
@@ -63,18 +59,22 @@ contract UserHub {
      * @notice Get all core contract addresses for frontend
      * @dev This is the main function frontends will use
      */
-    function getAllAddresses() external view returns (
-        address erc721Exchange,
-        address erc1155Exchange,
-        address erc721Factory,
-        address erc1155Factory,
-        address englishAuction,
-        address dutchAuction,
-        address auctionFactory,
-        address feeRegistryAddr,
-        address bundleManagerAddr,
-        address offerManagerAddr
-    ) {
+    function getAllAddresses()
+        external
+        view
+        returns (
+            address erc721Exchange,
+            address erc1155Exchange,
+            address erc721Factory,
+            address erc1155Factory,
+            address englishAuction,
+            address dutchAuction,
+            address auctionFactory,
+            address feeRegistryAddr,
+            address bundleManagerAddr,
+            address offerManagerAddr
+        )
+    {
         return (
             exchangeRegistry.getExchange(IExchangeRegistry.TokenStandard.ERC721),
             exchangeRegistry.getExchange(IExchangeRegistry.TokenStandard.ERC1155),
@@ -176,11 +176,11 @@ contract UserHub {
     /**
      * @notice Get system health status
      */
-    function getSystemStatus() external view returns (
-        bool isHealthy,
-        address[] memory activeContracts,
-        uint256 timestamp
-    ) {
+    function getSystemStatus()
+        external
+        view
+        returns (bool isHealthy, address[] memory activeContracts, uint256 timestamp)
+    {
         activeContracts = new address[](6);
         activeContracts[0] = address(exchangeRegistry);
         activeContracts[1] = address(collectionRegistry);
@@ -196,18 +196,17 @@ contract UserHub {
      * @notice Get all additional contract addresses
      * @dev Returns addresses that were set via updateAdditionalContracts()
      */
-    function getAdditionalAddresses() external view returns (
-        address listingValidatorAddr,
-        address emergencyManagerAddr,
-        address accessControlAddr,
-        address historyTrackerAddr
-    ) {
-        return (
-            listingValidator,
-            emergencyManager,
-            accessControl,
-            historyTracker
-        );
+    function getAdditionalAddresses()
+        external
+        view
+        returns (
+            address listingValidatorAddr,
+            address emergencyManagerAddr,
+            address accessControlAddr,
+            address historyTrackerAddr
+        )
+    {
+        return (listingValidator, emergencyManager, accessControl, historyTracker);
     }
 
     /**
@@ -255,17 +254,11 @@ contract UserHub {
     /**
      * @notice Get all registries addresses
      */
-    function getAllRegistries() external view returns (
-        address exchange,
-        address collection,
-        address fee,
-        address auction
-    ) {
-        return (
-            address(exchangeRegistry),
-            address(collectionRegistry),
-            address(feeRegistry),
-            address(auctionRegistry)
-        );
+    function getAllRegistries()
+        external
+        view
+        returns (address exchange, address collection, address fee, address auction)
+    {
+        return (address(exchangeRegistry), address(collectionRegistry), address(feeRegistry), address(auctionRegistry));
     }
 }

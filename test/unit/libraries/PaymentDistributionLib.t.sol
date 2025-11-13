@@ -71,10 +71,7 @@ contract PaymentDistributionLibTest is Test {
 
     function test_CalculatePaymentDistribution_ZeroFees() public {
         PaymentDistributionLib.FeeParams memory params = PaymentDistributionLib.FeeParams({
-            salePrice: SALE_PRICE,
-            marketplaceFeeRate: 0,
-            royaltyRate: 0,
-            bpsDenominator: BPS_DENOMINATOR
+            salePrice: SALE_PRICE, marketplaceFeeRate: 0, royaltyRate: 0, bpsDenominator: BPS_DENOMINATOR
         });
 
         PaymentDistributionLib.PaymentData memory data =

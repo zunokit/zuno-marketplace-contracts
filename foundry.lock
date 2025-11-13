@@ -2,6 +2,9 @@
   "contracts/lib/forge-std": {
     "rev": "addeae62cd620c53f2fdc91bfc82396f5df79d1d"
   },
+  "lib/forge-std": {
+    "rev": "8bbcf6e3f8f62f419e5429a0bd89331c85c37824"
+  },
   "lib\\forge-std": {
     "tag": {
       "name": "v1.10.0",
