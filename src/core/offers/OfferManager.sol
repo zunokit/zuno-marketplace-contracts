@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "src/core/access/MarketplaceAccessControl.sol";
 import "src/core/fees/AdvancedFeeManager.sol";
 // Import Offer types from centralized location
@@ -26,6 +27,7 @@ import "src/libraries/PaymentDistributionLib.sol";
  */
 contract OfferManager is Ownable, ReentrancyGuard, Pausable {
     using SafeERC20 for IERC20;
+    using EnumerableSet for EnumerableSet.UintSet;
 
     // ============================================================================
     // STATE VARIABLES
@@ -56,6 +58,9 @@ contract OfferManager is Ownable, ReentrancyGuard, Pausable {
 
     /// @notice NFT's received offers
     mapping(address => mapping(uint256 => bytes32[])) public nftOfferIds;
+
+    /// @notice Track token IDs with offers for each collection (gas optimization)
+    mapping(address => EnumerableSet.UintSet) private _collectionTokenIds;
 
     /// @notice Collection's received offers
     mapping(address => bytes32[]) public collectionOfferIds;
@@ -328,6 +333,9 @@ contract OfferManager is Ownable, ReentrancyGuard, Pausable {
         // Update mappings
         userOffers[msg.sender].push(offerId);
         nftOfferIds[collection][tokenId].push(offerId);
+
+        // Track token ID in EnumerableSet for gas-efficient queries
+        _collectionTokenIds[collection].add(tokenId);
 
         // Add to active offers tracking
         activeNFTOffers.push(offerId);
@@ -712,40 +720,61 @@ contract OfferManager is Ownable, ReentrancyGuard, Pausable {
      * @return offerIds Array of offer IDs
      */
     function getOffersByCollection(address collection, OfferType offerType) external view returns (bytes32[] memory) {
-        bytes32[] memory tempOffers = new bytes32[](1000); // Temporary array
-        uint256 count = 0;
-
         if (offerType == OfferType.NFT_OFFER) {
-            // For NFT offers, we need to iterate through all possible token IDs
-            // This is not gas efficient for large collections, but works for testing
-            for (uint256 tokenId = 0; tokenId < 1000; tokenId++) {
+            // GAS OPTIMIZED: Use EnumerableSet to only iterate actual token IDs with offers
+            EnumerableSet.UintSet storage tokenIds = _collectionTokenIds[collection];
+            uint256 tokenCount = tokenIds.length();
+
+            // Estimate max offers (could be multiple offers per token)
+            uint256 maxOffers = tokenCount * 10; // Conservative estimate
+            bytes32[] memory tempOffers = new bytes32[](maxOffers);
+            uint256 count = 0;
+
+            // Iterate only through token IDs that have offers
+            for (uint256 i = 0; i < tokenCount; i++) {
+                uint256 tokenId = tokenIds.at(i);
                 bytes32[] memory tokenOffers = nftOfferIds[collection][tokenId];
+
                 for (uint256 j = 0; j < tokenOffers.length; j++) {
                     bytes32 offerId = tokenOffers[j];
-                    if (nftOffers[offerId].offerId != bytes32(0)) {
+                    if (nftOffers[offerId].offerId != bytes32(0) && count < maxOffers) {
                         tempOffers[count] = offerId;
                         count++;
                     }
                 }
             }
+
+            // Resize array to actual count
+            bytes32[] memory result = new bytes32[](count);
+            for (uint256 i = 0; i < count; i++) {
+                result[i] = tempOffers[i];
+            }
+            return result;
         } else if (offerType == OfferType.COLLECTION_OFFER) {
             // For collection offers, use the collectionOfferIds mapping
             bytes32[] memory collectionOfferList = collectionOfferIds[collection];
-            for (uint256 i = 0; i < collectionOfferList.length; i++) {
+            uint256 maxCount = collectionOfferList.length;
+            bytes32[] memory tempOffers = new bytes32[](maxCount);
+            uint256 count = 0;
+
+            for (uint256 i = 0; i < maxCount; i++) {
                 bytes32 offerId = collectionOfferList[i];
                 if (collectionOffers[offerId].offerId != bytes32(0)) {
                     tempOffers[count] = offerId;
                     count++;
                 }
             }
+
+            // Resize array to actual count
+            bytes32[] memory result = new bytes32[](count);
+            for (uint256 i = 0; i < count; i++) {
+                result[i] = tempOffers[i];
+            }
+            return result;
         }
 
-        // Resize array to actual count
-        bytes32[] memory result = new bytes32[](count);
-        for (uint256 i = 0; i < count; i++) {
-            result[i] = tempOffers[i];
-        }
-        return result;
+        // Return empty array for unsupported offer types
+        return new bytes32[](0);
     }
 
     /**
