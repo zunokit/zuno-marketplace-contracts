@@ -16,6 +16,7 @@ import {Fee} from "src/common/Fee.sol";
 import "src/events/NFTExchangeEvents.sol";
 import {IExchangeCore} from "src/interfaces/IMarketplaceCore.sol";
 import {PaymentDistributionLib} from "src/libraries/PaymentDistributionLib.sol";
+import {FeeCalculationLib} from "src/libraries/FeeCalculationLib.sol";
 import {RoyaltyLib} from "src/libraries/RoyaltyLib.sol";
 import {ArrayUtilsLib} from "src/libraries/ArrayUtilsLib.sol";
 import {GasOptimizedLibrary} from "src/optimizations/GasOptimizedLibrary.sol";
@@ -286,7 +287,7 @@ contract BaseNFTExchange is Initializable, Ownable, ReentrancyGuard, ERC165, IEx
     function getBuyerSeesPrice(bytes32 m_listingId) public view returns (uint256) {
         Listing storage s_listing = s_listings[m_listingId];
         (, uint256 m_royalty) = getRoyaltyInfo(s_listing.contractAddress, s_listing.tokenId, s_listing.price);
-        uint256 m_takerFee = (s_listing.price * s_takerFee) / BPS_DENOMINATOR;
+        uint256 m_takerFee = FeeCalculationLib.calculateTakerFee(s_listing.price, s_takerFee);
         return s_listing.price + m_royalty + m_takerFee;
     }
 
