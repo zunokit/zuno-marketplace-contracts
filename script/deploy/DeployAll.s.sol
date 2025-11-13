@@ -36,6 +36,7 @@ import {IExchangeRegistry} from "src/interfaces/registry/IExchangeRegistry.sol";
 import {IAuctionRegistry} from "src/interfaces/registry/IAuctionRegistry.sol";
 // Advanced Features
 import {OfferManager} from "src/core/offers/OfferManager.sol";
+import {OfferEscrowManager} from "src/core/offers/escrow/OfferEscrowManager.sol";
 import {BundleManager} from "src/core/bundles/BundleManager.sol";
 import {AdvancedListingManager} from "src/core/listing/AdvancedListingManager.sol";
 
@@ -103,6 +104,7 @@ contract DeployAll is Script {
     AuctionRegistry public hubAuctionRegistry;
     // Managers
     OfferManager public offerManager;
+    OfferEscrowManager public offerEscrowManager;
     BundleManager public bundleManager;
     AdvancedListingManager public listingManager;
 
@@ -255,9 +257,16 @@ contract DeployAll is Script {
     function _deployAdvancedManagers() internal {
         console.log("7/9 Deploying Advanced Managers...");
 
+        // Deploy Offer Escrow Manager
+        offerEscrowManager = new OfferEscrowManager();
+        console.log("  OfferEscrowManager:", address(offerEscrowManager));
+
         // Deploy Offer Manager
-        offerManager = new OfferManager(address(accessControl), address(feeManager));
+        offerManager = new OfferManager(address(accessControl), address(feeManager), address(offerEscrowManager));
         console.log("  OfferManager:", address(offerManager));
+
+        // Authorize Offer Manager to use Escrow Manager
+        offerEscrowManager.authorizeCaller(address(offerManager));
 
         // Deploy Bundle Manager
         bundleManager = new BundleManager(address(accessControl), address(feeManager));

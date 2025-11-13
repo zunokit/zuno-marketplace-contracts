@@ -18,6 +18,7 @@ import "src/events/NFTExchangeEvents.sol";
 import "src/libraries/NFTTransferLib.sol";
 import "src/libraries/NFTValidationLib.sol";
 import "src/libraries/PaymentDistributionLib.sol";
+import "src/core/offers/escrow/OfferEscrowManager.sol";
 
 /**
  * @title OfferManager
@@ -38,6 +39,9 @@ contract OfferManager is Ownable, ReentrancyGuard, Pausable {
 
     /// @notice Fee manager contract
     AdvancedFeeManager public feeManager;
+
+    /// @notice Escrow manager for offer payments
+    OfferEscrowManager public immutable escrowManager;
 
     /// @notice Individual NFT offers
     mapping(bytes32 => Offer) public nftOffers;
@@ -263,14 +267,16 @@ contract OfferManager is Ownable, ReentrancyGuard, Pausable {
      * @notice Initializes the OfferManager
      * @param _accessControl Address of the access control contract
      * @param _feeManager Address of the fee manager contract
+     * @param _escrowManager Address of the escrow manager contract
      */
-    constructor(address _accessControl, address _feeManager) Ownable(msg.sender) {
-        if (_accessControl == address(0) || _feeManager == address(0)) {
+    constructor(address _accessControl, address _feeManager, address _escrowManager) Ownable(msg.sender) {
+        if (_accessControl == address(0) || _feeManager == address(0) || _escrowManager == address(0)) {
             revert NFTExchange__NotTheOwner();
         }
 
         accessControl = MarketplaceAccessControl(_accessControl);
         feeManager = AdvancedFeeManager(_feeManager);
+        escrowManager = OfferEscrowManager(_escrowManager);
         offerCounter = 1;
     }
 
@@ -303,15 +309,16 @@ contract OfferManager is Ownable, ReentrancyGuard, Pausable {
     {
         offerId = _generateOfferId();
 
-        // Handle payment escrow
+        // Handle payment escrow via OfferEscrowManager
         if (paymentToken == address(0)) {
-            // ETH offer
+            // ETH offer - forward msg.value to escrow manager
             if (msg.value != amount) {
                 revert NFTExchange__InvalidPrice();
             }
+            escrowManager.lockETH{value: msg.value}(offerId, msg.sender);
         } else {
-            // ERC20 offer
-            IERC20(paymentToken).safeTransferFrom(msg.sender, address(this), amount);
+            // ERC20 offer - user must approve escrowManager
+            escrowManager.lockERC20(offerId, msg.sender, paymentToken, amount);
         }
 
         // Create offer
@@ -378,15 +385,16 @@ contract OfferManager is Ownable, ReentrancyGuard, Pausable {
         offerId = _generateOfferId();
         uint256 totalAmount = amount * quantity;
 
-        // Handle payment escrow
+        // Handle payment escrow via OfferEscrowManager
         if (paymentToken == address(0)) {
-            // ETH offer
+            // ETH offer - forward msg.value to escrow manager
             if (msg.value != totalAmount) {
                 revert NFTExchange__InvalidPrice();
             }
+            escrowManager.lockETH{value: msg.value}(offerId, msg.sender);
         } else {
-            // ERC20 offer
-            IERC20(paymentToken).safeTransferFrom(msg.sender, address(this), totalAmount);
+            // ERC20 offer - user must approve escrowManager
+            escrowManager.lockERC20(offerId, msg.sender, paymentToken, totalAmount);
         }
 
         // Create collection offer
@@ -464,15 +472,16 @@ contract OfferManager is Ownable, ReentrancyGuard, Pausable {
         offerId = _generateOfferId();
         uint256 totalAmount = amount * quantity;
 
-        // Handle payment escrow
+        // Handle payment escrow via OfferEscrowManager
         if (paymentToken == address(0)) {
-            // ETH offer
+            // ETH offer - forward msg.value to escrow manager
             if (msg.value != totalAmount) {
                 revert NFTExchange__InvalidPrice();
             }
+            escrowManager.lockETH{value: msg.value}(offerId, msg.sender);
         } else {
-            // ERC20 offer
-            IERC20(paymentToken).safeTransferFrom(msg.sender, address(this), totalAmount);
+            // ERC20 offer - user must approve escrowManager
+            escrowManager.lockERC20(offerId, msg.sender, paymentToken, totalAmount);
         }
 
         // Create trait offer
@@ -541,6 +550,13 @@ contract OfferManager is Ownable, ReentrancyGuard, Pausable {
         // Verify ownership and transfer NFT
         _transferNFT(offer.collection, offer.tokenId, msg.sender, offer.offerer);
 
+        // Release payment from escrow to this contract
+        if (details.paymentToken == address(0)) {
+            escrowManager.releaseETH(offerId, address(this), offer.amount);
+        } else {
+            escrowManager.releaseERC20(offerId, address(this), details.paymentToken, offer.amount);
+        }
+
         // Calculate and distribute fees
         uint256 netAmount = _processPayment(
             offer.collection, offer.tokenId, offer.amount, details.paymentToken, offer.offerer, msg.sender
@@ -585,6 +601,13 @@ contract OfferManager is Ownable, ReentrancyGuard, Pausable {
         // Verify ownership and transfer NFT
         _transferNFT(offer.collection, tokenId, msg.sender, offer.offerer);
 
+        // Release payment from escrow to this contract
+        if (progress.paymentToken == address(0)) {
+            escrowManager.releaseETH(offerId, address(this), offer.amount);
+        } else {
+            escrowManager.releaseERC20(offerId, address(this), progress.paymentToken, offer.amount);
+        }
+
         // Calculate and distribute payment
         uint256 netAmount =
             _processPayment(offer.collection, tokenId, offer.amount, progress.paymentToken, offer.offerer, msg.sender);
@@ -619,8 +642,12 @@ contract OfferManager is Ownable, ReentrancyGuard, Pausable {
 
             offer.status = OfferStatus.CANCELLED;
 
-            // Refund payment
-            _refundPayment(details.paymentToken, offer.amount, offer.offerer);
+            // Refund payment via escrow manager
+            if (details.paymentToken == address(0)) {
+                escrowManager.refundETH(offerId, offer.amount);
+            } else {
+                escrowManager.refundERC20(offerId, details.paymentToken, offer.amount);
+            }
 
             emit OfferCancelled(offerId, msg.sender, reason);
             return;
@@ -641,9 +668,13 @@ contract OfferManager is Ownable, ReentrancyGuard, Pausable {
 
             offer.status = OfferStatus.CANCELLED;
 
-            // Refund remaining payment
+            // Refund remaining payment via escrow manager
             uint256 remainingAmount = (offer.quantity - progress.filled) * offer.amount;
-            _refundPayment(progress.paymentToken, remainingAmount, offer.offerer);
+            if (progress.paymentToken == address(0)) {
+                escrowManager.refundETH(offerId, remainingAmount);
+            } else {
+                escrowManager.refundERC20(offerId, progress.paymentToken, remainingAmount);
+            }
 
             emit OfferCancelled(offerId, msg.sender, reason);
             return;
@@ -664,9 +695,13 @@ contract OfferManager is Ownable, ReentrancyGuard, Pausable {
 
             offer.status = OfferStatus.CANCELLED;
 
-            // Refund remaining payment
+            // Refund remaining payment via escrow manager
             uint256 remainingAmount = (offer.quantity - details.filled) * offer.amount;
-            _refundPayment(details.paymentToken, remainingAmount, offer.offerer);
+            if (details.paymentToken == address(0)) {
+                escrowManager.refundETH(offerId, remainingAmount);
+            } else {
+                escrowManager.refundERC20(offerId, details.paymentToken, remainingAmount);
+            }
 
             emit OfferCancelled(offerId, msg.sender, reason);
             return;
@@ -998,15 +1033,7 @@ contract OfferManager is Ownable, ReentrancyGuard, Pausable {
     }
 
     /**
-     * @notice Refunds payment to offerer
+     * @notice Allows contract to receive ETH from escrow manager
      */
-    function _refundPayment(address paymentToken, uint256 amount, address recipient) internal {
-        if (paymentToken == address(0)) {
-            // ETH refund
-            payable(recipient).transfer(amount);
-        } else {
-            // ERC20 refund
-            IERC20(paymentToken).safeTransfer(recipient, amount);
-        }
-    }
+    receive() external payable {}
 }

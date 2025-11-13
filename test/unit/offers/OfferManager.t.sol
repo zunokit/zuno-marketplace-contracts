@@ -3,6 +3,7 @@ pragma solidity ^0.8.30;
 
 import "forge-std/Test.sol";
 import "src/core/offers/OfferManager.sol";
+import "src/core/offers/escrow/OfferEscrowManager.sol";
 import "src/core/access/MarketplaceAccessControl.sol";
 import "src/core/fees/AdvancedFeeManager.sol";
 import "test/utils/TestHelpers.sol";
@@ -14,6 +15,7 @@ error EnforcedPause();
 
 contract OfferManagerTest is Test, TestHelpers {
     OfferManager public offerManager;
+    OfferEscrowManager public escrowManager;
     MarketplaceAccessControl public accessControl;
     AdvancedFeeManager public feeManager;
 
@@ -46,8 +48,14 @@ contract OfferManagerTest is Test, TestHelpers {
         // Deploy fee manager (mock)
         feeManager = new AdvancedFeeManager(address(accessControl), admin);
 
+        // Deploy escrow manager
+        escrowManager = new OfferEscrowManager();
+
         // Deploy offer manager
-        offerManager = new OfferManager(address(accessControl), address(feeManager));
+        offerManager = new OfferManager(address(accessControl), address(feeManager), address(escrowManager));
+
+        // Authorize offer manager to use escrow manager
+        escrowManager.authorizeCaller(address(offerManager));
 
         vm.stopPrank();
 
@@ -595,10 +603,10 @@ contract OfferManagerTest is Test, TestHelpers {
         // Deploy a real MockERC20 contract
         MockERC20 mockToken = new MockERC20("TestToken", "TT", 18);
 
-        // Mint tokens to offerer and approve OfferManager
+        // Mint tokens to offerer and approve OfferEscrowManager
         mockToken.mint(offerer, offerAmount);
         vm.prank(offerer);
-        mockToken.approve(address(offerManager), offerAmount);
+        mockToken.approve(address(escrowManager), offerAmount);
 
         vm.startPrank(offerer);
 

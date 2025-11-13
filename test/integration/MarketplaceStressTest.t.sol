@@ -12,6 +12,7 @@ import {ERC721NFTExchange} from "src/core/exchange/ERC721NFTExchange.sol";
 import {ERC1155NFTExchange} from "src/core/exchange/ERC1155NFTExchange.sol";
 import {AuctionFactory} from "src/core/factory/AuctionFactory.sol";
 import {OfferManager} from "src/core/offers/OfferManager.sol";
+import {OfferEscrowManager} from "src/core/offers/escrow/OfferEscrowManager.sol";
 import {BundleManager} from "src/core/bundles/BundleManager.sol";
 import {MarketplaceAccessControl} from "src/core/access/MarketplaceAccessControl.sol";
 import {AdvancedFeeManager} from "src/core/fees/AdvancedFeeManager.sol";
@@ -34,6 +35,7 @@ contract MarketplaceStressTest is Test {
     ERC1155NFTExchange public erc1155Exchange;
     AuctionFactory public auctionFactory;
     OfferManager public offerManager;
+    OfferEscrowManager public offerEscrowManager;
     BundleManager public bundleManager;
     MarketplaceAccessControl public accessControl;
     AdvancedFeeManager public feeManager;
@@ -103,7 +105,9 @@ contract MarketplaceStressTest is Test {
         exchangeRegistry = new NFTExchangeRegistry(address(exchangeFactory));
 
         auctionFactory = new AuctionFactory(marketplaceWallet);
-        offerManager = new OfferManager(address(accessControl), address(feeManager));
+        offerEscrowManager = new OfferEscrowManager();
+        offerManager = new OfferManager(address(accessControl), address(feeManager), address(offerEscrowManager));
+        offerEscrowManager.authorizeCaller(address(offerManager));
         bundleManager = new BundleManager(address(accessControl), address(feeManager));
     }
 

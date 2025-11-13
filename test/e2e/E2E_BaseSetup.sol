@@ -25,6 +25,7 @@ import {DutchAuction} from "src/core/auction/DutchAuction.sol";
 
 // Advanced Features
 import {OfferManager} from "src/core/offers/OfferManager.sol";
+import {OfferEscrowManager} from "src/core/offers/escrow/OfferEscrowManager.sol";
 import {BundleManager} from "src/core/bundles/BundleManager.sol";
 import {AdvancedListingManager} from "src/core/listing/AdvancedListingManager.sol";
 
@@ -83,6 +84,7 @@ abstract contract E2E_BaseSetup is Test {
     DutchAuction public dutchAuction;
 
     OfferManager public offerManager;
+    OfferEscrowManager public offerEscrowManager;
     BundleManager public bundleManager;
     AdvancedListingManager public listingManager;
 
@@ -260,10 +262,13 @@ abstract contract E2E_BaseSetup is Test {
     }
 
     function _deployAdvancedFeatures() internal {
-        offerManager = new OfferManager(address(accessControl), address(feeManager));
+        offerEscrowManager = new OfferEscrowManager();
+        offerManager = new OfferManager(address(accessControl), address(feeManager), address(offerEscrowManager));
+        offerEscrowManager.authorizeCaller(address(offerManager));
         bundleManager = new BundleManager(address(accessControl), address(feeManager));
 
         console2.log("Advanced features deployed");
+        console2.log("  OfferEscrowManager:", address(offerEscrowManager));
         console2.log("  OfferManager:", address(offerManager));
         console2.log("  BundleManager:", address(bundleManager));
     }

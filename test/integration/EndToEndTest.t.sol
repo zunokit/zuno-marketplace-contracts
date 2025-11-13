@@ -15,6 +15,7 @@ import {AuctionFactory} from "src/core/factory/AuctionFactory.sol";
 import {MarketplaceValidator} from "src/core/validation/MarketplaceValidator.sol";
 import {AdvancedFeeManager} from "src/core/fees/AdvancedFeeManager.sol";
 import {OfferManager} from "src/core/offers/OfferManager.sol";
+import {OfferEscrowManager} from "src/core/offers/escrow/OfferEscrowManager.sol";
 import {BundleManager} from "src/core/bundles/BundleManager.sol";
 import {CollectionVerifier} from "src/core/collection/CollectionVerifier.sol";
 import {MarketplaceAccessControl} from "src/core/access/MarketplaceAccessControl.sol";
@@ -37,6 +38,7 @@ contract EndToEndTest is Test {
     MarketplaceAccessControl public accessControl;
     AdvancedFeeManager public feeManager;
     OfferManager public offerManager;
+    OfferEscrowManager public offerEscrowManager;
     BundleManager public bundleManager;
     CollectionVerifier public collectionVerifier;
 
@@ -108,7 +110,9 @@ contract EndToEndTest is Test {
         // Deploy advanced contracts
         accessControl = new MarketplaceAccessControl();
         feeManager = new AdvancedFeeManager(address(accessControl), marketplaceWallet);
-        offerManager = new OfferManager(address(accessControl), address(feeManager));
+        offerEscrowManager = new OfferEscrowManager();
+        offerManager = new OfferManager(address(accessControl), address(feeManager), address(offerEscrowManager));
+        offerEscrowManager.authorizeCaller(address(offerManager));
         bundleManager = new BundleManager(address(accessControl), address(feeManager));
         collectionVerifier = new CollectionVerifier(address(accessControl), marketplaceWallet, 0.01 ether);
 
