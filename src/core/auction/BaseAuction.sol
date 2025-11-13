@@ -12,6 +12,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {RoyaltyLib} from "src/libraries/RoyaltyLib.sol";
 import {NFTTransferLib} from "src/libraries/NFTTransferLib.sol";
 import {NFTValidationLib} from "src/libraries/NFTValidationLib.sol";
+import {PaymentDistributionLib} from "src/libraries/PaymentDistributionLib.sol";
 import {
     Auction,
     Bid,
@@ -749,27 +750,25 @@ abstract contract BaseAuction is IAuction, ReentrancyGuard, Pausable, Ownable {
     }
 
     /**
-     * @notice Executes payment distribution to all parties
+     * @notice Executes payment distribution to all parties using PaymentDistributionLib
      * @param data Payment distribution data
      */
     function _executePaymentDistribution(PaymentDistributionData memory data) internal {
-        // Transfer marketplace fee
-        if (data.marketplaceFeeAmount > 0) {
-            (bool success,) = marketplaceWallet.call{value: data.marketplaceFeeAmount}("");
-            if (!success) revert Auction__PaymentDistributionFailed();
-        }
+        // Calculate total amount for validation
+        uint256 totalAmount = data.sellerAmount + data.marketplaceFeeAmount + data.royaltyAmount;
 
-        // Transfer royalty
-        if (data.royaltyAmount > 0 && data.royaltyReceiver != address(0)) {
-            (bool success,) = data.royaltyReceiver.call{value: data.royaltyAmount}("");
-            if (!success) revert Auction__PaymentDistributionFailed();
-        }
+        // Convert to library format and distribute
+        PaymentDistributionLib.PaymentData memory paymentData = PaymentDistributionLib.PaymentData({
+            seller: data.seller,
+            royaltyReceiver: data.royaltyReceiver,
+            marketplaceWallet: marketplaceWallet,
+            totalAmount: totalAmount,
+            sellerAmount: data.sellerAmount,
+            marketplaceFee: data.marketplaceFeeAmount,
+            royaltyAmount: data.royaltyAmount
+        });
 
-        // Transfer to seller
-        if (data.sellerAmount > 0) {
-            (bool success,) = data.seller.call{value: data.sellerAmount}("");
-            if (!success) revert Auction__PaymentDistributionFailed();
-        }
+        PaymentDistributionLib.distributePayment(paymentData);
     }
 
     /**

@@ -15,6 +15,7 @@ import "src/core/access/MarketplaceAccessControl.sol";
 import "src/core/validation/MarketplaceValidator.sol";
 import "src/libraries/NFTTransferLib.sol";
 import "src/libraries/NFTValidationLib.sol";
+import "src/libraries/PaymentDistributionLib.sol";
 
 /**
  * @title AdvancedListingManager
@@ -835,7 +836,7 @@ contract AdvancedListingManager is Ownable, ReentrancyGuard, Pausable {
     }
 
     /**
-     * @notice Transfers payments to respective parties
+     * @notice Transfers payments to respective parties using PaymentDistributionLib
      */
     function _transferPayments(
         address seller,
@@ -844,29 +845,22 @@ contract AdvancedListingManager is Ownable, ReentrancyGuard, Pausable {
         uint256 royaltyAmount,
         uint256 fees
     ) internal {
-        // Transfer to seller
-        if (sellerAmount > 0) {
-            (bool success,) = seller.call{value: sellerAmount}("");
-            if (!success) {
-                revert AdvancedListing__PaymentFailed();
-            }
-        }
+        // Calculate total amount for validation
+        uint256 totalAmount = sellerAmount + royaltyAmount + fees;
 
-        // Transfer royalties
-        if (royaltyAmount > 0 && royaltyRecipient != address(0)) {
-            (bool success,) = royaltyRecipient.call{value: royaltyAmount}("");
-            if (!success) {
-                revert AdvancedListing__PaymentFailed();
-            }
-        }
+        // Create payment data using library struct
+        PaymentDistributionLib.PaymentData memory paymentData = PaymentDistributionLib.PaymentData({
+            seller: seller,
+            royaltyReceiver: royaltyRecipient,
+            marketplaceWallet: listingFees.feeRecipient,
+            totalAmount: totalAmount,
+            sellerAmount: sellerAmount,
+            marketplaceFee: fees,
+            royaltyAmount: royaltyAmount
+        });
 
-        // Transfer fees
-        if (fees > 0) {
-            (bool success,) = listingFees.feeRecipient.call{value: fees}("");
-            if (!success) {
-                revert AdvancedListing__PaymentFailed();
-            }
-        }
+        // Use library for distribution
+        PaymentDistributionLib.distributePayment(paymentData);
     }
 
     /**

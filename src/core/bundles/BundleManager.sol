@@ -16,6 +16,7 @@ import "src/errors/NFTExchangeErrors.sol";
 import "src/events/NFTExchangeEvents.sol";
 import "src/libraries/NFTTransferLib.sol";
 import "src/libraries/NFTValidationLib.sol";
+import "src/libraries/PaymentDistributionLib.sol";
 
 /**
  * @title BundleManager
@@ -680,15 +681,21 @@ contract BundleManager is Ownable, ReentrancyGuard, Pausable, IERC1155Receiver, 
     }
 
     /**
-     * @notice Distributes bundle payment
+     * @notice Distributes bundle payment using PaymentDistributionLib
      */
     function _distributeBundlePayment(Bundle memory bundle, BundlePricing memory pricing, address buyer) internal {
         if (bundle.paymentToken == address(0)) {
-            // ETH payment
-            payable(bundle.seller).transfer(pricing.netSellerAmount);
-            if (pricing.platformFee > 0) {
-                payable(feeManager.feeRecipient()).transfer(pricing.platformFee);
-            }
+            // ETH payment - use PaymentDistributionLib
+            PaymentDistributionLib.PaymentData memory paymentData = PaymentDistributionLib.PaymentData({
+                seller: bundle.seller,
+                royaltyReceiver: address(0), // Royalties handled separately if needed
+                marketplaceWallet: feeManager.feeRecipient(),
+                totalAmount: bundle.totalPrice,
+                sellerAmount: pricing.netSellerAmount,
+                marketplaceFee: pricing.platformFee,
+                royaltyAmount: pricing.totalRoyalties
+            });
+            PaymentDistributionLib.distributePayment(paymentData);
         } else {
             // ERC20 payment
             IERC20(bundle.paymentToken).safeTransfer(bundle.seller, pricing.netSellerAmount);

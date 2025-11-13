@@ -16,6 +16,7 @@ import "src/errors/NFTExchangeErrors.sol";
 import "src/events/NFTExchangeEvents.sol";
 import "src/libraries/NFTTransferLib.sol";
 import "src/libraries/NFTValidationLib.sol";
+import "src/libraries/PaymentDistributionLib.sol";
 
 /**
  * @title OfferManager
@@ -945,11 +946,17 @@ contract OfferManager is Ownable, ReentrancyGuard, Pausable {
 
         // Transfer payment
         if (paymentToken == address(0)) {
-            // ETH payment
-            payable(recipient).transfer(netAmount);
-            if (platformFee > 0) {
-                payable(feeManager.feeRecipient()).transfer(platformFee);
-            }
+            // ETH payment - use PaymentDistributionLib
+            PaymentDistributionLib.PaymentData memory paymentData = PaymentDistributionLib.PaymentData({
+                seller: recipient,
+                royaltyReceiver: address(0), // No royalty for now
+                marketplaceWallet: feeManager.feeRecipient(),
+                totalAmount: amount,
+                sellerAmount: netAmount,
+                marketplaceFee: platformFee,
+                royaltyAmount: royaltyFee
+            });
+            PaymentDistributionLib.distributePayment(paymentData);
         } else {
             // ERC20 payment
             IERC20(paymentToken).safeTransfer(recipient, netAmount);
