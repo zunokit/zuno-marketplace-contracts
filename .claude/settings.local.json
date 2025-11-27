@@ -37,7 +37,8 @@
       "Bash(tree:*)",
       "Bash(forge script:*)",
       "Bash(cast wallet address:*)",
-      "Bash(make:*)"
+      "Bash(make:*)",
+      "Bash(del state.json)"
     ],
     "deny": [],
     "ask": []
