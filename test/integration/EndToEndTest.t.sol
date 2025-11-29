@@ -8,6 +8,8 @@ import {ERC1155NFTExchange} from "src/core/exchange/ERC1155NFTExchange.sol";
 import {ERC721CollectionFactory} from "src/core/factory/ERC721CollectionFactory.sol";
 import {ERC1155CollectionFactory} from "src/core/factory/ERC1155CollectionFactory.sol";
 import {AuctionFactory} from "src/core/factory/AuctionFactory.sol";
+import {EnglishAuctionImplementation} from "src/core/proxy/EnglishAuctionImplementation.sol";
+import {DutchAuctionImplementation} from "src/core/proxy/DutchAuctionImplementation.sol";
 import {MarketplaceValidator} from "src/core/validation/MarketplaceValidator.sol";
 import {AdvancedFeeManager} from "src/core/fees/AdvancedFeeManager.sol";
 import {OfferManager} from "src/core/offers/OfferManager.sol";
@@ -82,7 +84,9 @@ contract EndToEndTest is Test {
         erc721CollectionFactory = new ERC721CollectionFactory();
         erc1155CollectionFactory = new ERC1155CollectionFactory();
 
-        auctionFactory = new AuctionFactory(marketplaceWallet);
+        EnglishAuctionImplementation englishImpl = new EnglishAuctionImplementation();
+        DutchAuctionImplementation dutchImpl = new DutchAuctionImplementation();
+        auctionFactory = new AuctionFactory(marketplaceWallet, address(englishImpl), address(dutchImpl));
         validator = new MarketplaceValidator();
 
         // Deploy exchange contracts directly

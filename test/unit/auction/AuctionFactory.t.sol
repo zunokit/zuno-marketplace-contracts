@@ -5,6 +5,8 @@ import {Test, console2} from "forge-std/Test.sol";
 import {AuctionFactory} from "src/core/factory/AuctionFactory.sol";
 import {EnglishAuction} from "src/core/auction/EnglishAuction.sol";
 import {DutchAuction} from "src/core/auction/DutchAuction.sol";
+import {EnglishAuctionImplementation} from "src/core/proxy/EnglishAuctionImplementation.sol";
+import {DutchAuctionImplementation} from "src/core/proxy/DutchAuctionImplementation.sol";
 import {IAuction} from "src/interfaces/IAuction.sol";
 import {AuctionType, AuctionStatus} from "src/types/AuctionTypes.sol";
 import {AuctionTestHelpers} from "test/utils/auction/AuctionTestHelpers.sol";
@@ -54,26 +56,32 @@ contract AuctionFactoryTest is AuctionTestHelpers {
     // ============================================================================
 
     function test_Constructor_Success() public {
+        // Deploy implementations
+        EnglishAuctionImplementation englishImpl = new EnglishAuctionImplementation();
+        DutchAuctionImplementation dutchImpl = new DutchAuctionImplementation();
+
         // Deploy new factory to test constructor
-        // Don't check exact contract addresses since they're dynamically calculated
-        vm.expectEmit(false, false, true, true);
+        vm.expectEmit(true, true, true, true);
         emit AuctionImplementationsDeployed(
-            address(0), // Will be calculated - don't check this field
-            address(0), // Will be calculated - don't check this field
+            address(englishImpl),
+            address(dutchImpl),
             MARKETPLACE_WALLET
         );
 
-        AuctionFactory newFactory = new AuctionFactory(MARKETPLACE_WALLET);
+        AuctionFactory newFactory = new AuctionFactory(MARKETPLACE_WALLET, address(englishImpl), address(dutchImpl));
 
         // Verify factory state
         assertEq(newFactory.marketplaceWallet(), MARKETPLACE_WALLET);
-        assertNotEq(newFactory.englishAuctionImplementation(), address(0));
-        assertNotEq(newFactory.dutchAuctionImplementation(), address(0));
+        assertEq(newFactory.englishAuctionImplementation(), address(englishImpl));
+        assertEq(newFactory.dutchAuctionImplementation(), address(dutchImpl));
     }
 
     function test_Constructor_RevertIfZeroAddress() public {
+        EnglishAuctionImplementation englishImpl = new EnglishAuctionImplementation();
+        DutchAuctionImplementation dutchImpl = new DutchAuctionImplementation();
+        
         vm.expectRevert(Auction__ZeroAddress.selector);
-        new AuctionFactory(address(0));
+        new AuctionFactory(address(0), address(englishImpl), address(dutchImpl));
     }
 
     // ============================================================================

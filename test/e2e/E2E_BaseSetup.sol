@@ -20,6 +20,8 @@ import {CollectionVerifier} from "src/core/collection/CollectionVerifier.sol";
 import {AuctionFactory} from "src/core/factory/AuctionFactory.sol";
 import {EnglishAuction} from "src/core/auction/EnglishAuction.sol";
 import {DutchAuction} from "src/core/auction/DutchAuction.sol";
+import {EnglishAuctionImplementation} from "src/core/proxy/EnglishAuctionImplementation.sol";
+import {DutchAuctionImplementation} from "src/core/proxy/DutchAuctionImplementation.sol";
 
 // Advanced Features
 import {OfferManager} from "src/core/offers/OfferManager.sol";
@@ -241,9 +243,11 @@ abstract contract E2E_BaseSetup is Test {
     }
 
     function _deployAuctionSystem() internal {
-        auctionFactory = new AuctionFactory(marketplaceWallet);
-        englishAuction = auctionFactory.englishAuction();
-        dutchAuction = auctionFactory.dutchAuction();
+        EnglishAuctionImplementation englishImpl = new EnglishAuctionImplementation();
+        DutchAuctionImplementation dutchImpl = new DutchAuctionImplementation();
+        auctionFactory = new AuctionFactory(marketplaceWallet, address(englishImpl), address(dutchImpl));
+        englishAuction = EnglishAuction(address(englishImpl));
+        dutchAuction = DutchAuction(address(dutchImpl));
 
         console2.log("Auction system deployed");
         console2.log("  AuctionFactory:", address(auctionFactory));
