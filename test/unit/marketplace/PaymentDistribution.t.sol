@@ -7,6 +7,8 @@ import "src/core/exchange/ERC1155NFTExchange.sol";
 import "src/core/auction/EnglishAuction.sol";
 import "src/core/auction/DutchAuction.sol";
 import "src/core/factory/AuctionFactory.sol";
+import "src/core/proxy/EnglishAuctionImplementation.sol";
+import "src/core/proxy/DutchAuctionImplementation.sol";
 import "src/common/Fee.sol";
 import "test/mocks/MockERC721.sol";
 import "test/mocks/MockERC1155.sol";
@@ -51,7 +53,9 @@ contract PaymentDistributionTest is Test {
         erc1155Exchange.initialize(MARKETPLACE_WALLET, address(this));
 
         // Deploy auction factory
-        auctionFactory = new AuctionFactory(MARKETPLACE_WALLET);
+        EnglishAuctionImplementation englishImpl = new EnglishAuctionImplementation();
+        DutchAuctionImplementation dutchImpl = new DutchAuctionImplementation();
+        auctionFactory = new AuctionFactory(MARKETPLACE_WALLET, address(englishImpl), address(dutchImpl));
 
         // Mint test NFTs
         vm.startPrank(address(this)); // MockERC721 has onlyOwner modifier

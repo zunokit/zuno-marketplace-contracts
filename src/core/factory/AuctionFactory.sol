@@ -85,11 +85,25 @@ contract AuctionFactory is Ownable, Pausable, ReentrancyGuard {
     /**
      * @notice Initializes the auction factory
      * @param _marketplaceWallet Address to receive marketplace fees
+     * @param _englishAuctionImpl Pre-deployed EnglishAuctionImplementation address
+     * @param _dutchAuctionImpl Pre-deployed DutchAuctionImplementation address
      */
-    constructor(address _marketplaceWallet) Ownable(msg.sender) {
+    constructor(
+        address _marketplaceWallet,
+        address _englishAuctionImpl,
+        address _dutchAuctionImpl
+    ) Ownable(msg.sender) {
         _validateMarketplaceWallet(_marketplaceWallet);
+        require(_englishAuctionImpl != address(0), "Invalid english auction impl");
+        require(_dutchAuctionImpl != address(0), "Invalid dutch auction impl");
+        
         marketplaceWallet = _marketplaceWallet;
-        _deployImplementations(_marketplaceWallet);
+        englishAuctionImplementation = _englishAuctionImpl;
+        dutchAuctionImplementation = _dutchAuctionImpl;
+
+        emit AuctionImplementationsDeployed(
+            _englishAuctionImpl, _dutchAuctionImpl, _marketplaceWallet
+        );
     }
 
     // ============================================================================
@@ -589,18 +603,7 @@ contract AuctionFactory is Ownable, Pausable, ReentrancyGuard {
         }
     }
 
-    /**
-     * @notice Deploys implementation contracts
-     * @param _marketplaceWallet Address to receive marketplace fees
-     */
-    function _deployImplementations(address _marketplaceWallet) internal {
-        englishAuctionImplementation = address(new EnglishAuctionImplementation());
-        dutchAuctionImplementation = address(new DutchAuctionImplementation());
 
-        emit AuctionImplementationsDeployed(
-            englishAuctionImplementation, dutchAuctionImplementation, _marketplaceWallet
-        );
-    }
 
     /**
      * @notice Validates NFT availability for auction (not already listed)

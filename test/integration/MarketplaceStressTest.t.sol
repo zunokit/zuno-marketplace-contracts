@@ -9,6 +9,8 @@ import {MarketplaceValidator} from "src/core/validation/MarketplaceValidator.sol
 import {ERC721NFTExchange} from "src/core/exchange/ERC721NFTExchange.sol";
 import {ERC1155NFTExchange} from "src/core/exchange/ERC1155NFTExchange.sol";
 import {AuctionFactory} from "src/core/factory/AuctionFactory.sol";
+import {EnglishAuctionImplementation} from "src/core/proxy/EnglishAuctionImplementation.sol";
+import {DutchAuctionImplementation} from "src/core/proxy/DutchAuctionImplementation.sol";
 import {OfferManager} from "src/core/offers/OfferManager.sol";
 import {BundleManager} from "src/core/bundles/BundleManager.sol";
 import {MarketplaceAccessControl} from "src/core/access/MarketplaceAccessControl.sol";
@@ -85,7 +87,9 @@ contract MarketplaceStressTest is Test {
         erc1155Exchange = new ERC1155NFTExchange();
         erc1155Exchange.initialize(marketplaceWallet, owner);
 
-        auctionFactory = new AuctionFactory(marketplaceWallet);
+        EnglishAuctionImplementation englishImpl = new EnglishAuctionImplementation();
+        DutchAuctionImplementation dutchImpl = new DutchAuctionImplementation();
+        auctionFactory = new AuctionFactory(marketplaceWallet, address(englishImpl), address(dutchImpl));
         offerManager = new OfferManager(address(accessControl), address(feeManager));
         bundleManager = new BundleManager(address(accessControl), address(feeManager));
     }
@@ -93,8 +97,8 @@ contract MarketplaceStressTest is Test {
     function _configureContracts() internal {
         validator.registerExchange(address(erc721Exchange), 0);
         validator.registerExchange(address(erc1155Exchange), 1);
-        validator.registerAuction(address(auctionFactory.englishAuction()), 0);
-        validator.registerAuction(address(auctionFactory.dutchAuction()), 1);
+        validator.registerAuction(auctionFactory.englishAuctionImplementation(), 0);
+        validator.registerAuction(auctionFactory.dutchAuctionImplementation(), 1);
         auctionFactory.setMarketplaceValidator(address(validator));
     }
 

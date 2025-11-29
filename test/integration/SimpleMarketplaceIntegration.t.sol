@@ -9,6 +9,8 @@ import {MarketplaceValidator} from "src/core/validation/MarketplaceValidator.sol
 import {ERC721NFTExchange} from "src/core/exchange/ERC721NFTExchange.sol";
 import {ERC1155NFTExchange} from "src/core/exchange/ERC1155NFTExchange.sol";
 import {AuctionFactory} from "src/core/factory/AuctionFactory.sol";
+import {EnglishAuctionImplementation} from "src/core/proxy/EnglishAuctionImplementation.sol";
+import {DutchAuctionImplementation} from "src/core/proxy/DutchAuctionImplementation.sol";
 import {OfferManager} from "src/core/offers/OfferManager.sol";
 import {BundleManager} from "src/core/bundles/BundleManager.sol";
 import {MarketplaceAccessControl} from "src/core/access/MarketplaceAccessControl.sol";
@@ -99,7 +101,9 @@ contract SimpleMarketplaceIntegrationTest is Test {
         erc1155Exchange = new ERC1155NFTExchange();
         erc1155Exchange.initialize(marketplaceWallet, owner);
 
-        auctionFactory = new AuctionFactory(marketplaceWallet);
+        EnglishAuctionImplementation englishImpl = new EnglishAuctionImplementation();
+        DutchAuctionImplementation dutchImpl = new DutchAuctionImplementation();
+        auctionFactory = new AuctionFactory(marketplaceWallet, address(englishImpl), address(dutchImpl));
     }
 
     function _deployCollectionSystem() internal {

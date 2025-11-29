@@ -15,6 +15,8 @@ import {ERC1155CollectionFactory} from "src/core/factory/ERC1155CollectionFactor
 import {AuctionFactory} from "src/core/factory/AuctionFactory.sol";
 import {EnglishAuction} from "src/core/auction/EnglishAuction.sol";
 import {DutchAuction} from "src/core/auction/DutchAuction.sol";
+import {EnglishAuctionImplementation} from "src/core/proxy/EnglishAuctionImplementation.sol";
+import {DutchAuctionImplementation} from "src/core/proxy/DutchAuctionImplementation.sol";
 
 // Fee Management
 import {Fee} from "src/common/Fee.sol";
@@ -234,15 +236,20 @@ contract DeployAll is Script {
     function _deployAuctions() internal {
         console.log("6/9 Deploying Auction System...");
 
-        auctionFactory = new AuctionFactory(admin);
+        // Deploy implementations directly (so they appear in broadcast)
+        EnglishAuctionImplementation englishImpl = new EnglishAuctionImplementation();
+        DutchAuctionImplementation dutchImpl = new DutchAuctionImplementation();
 
-        // Get implementation addresses from factory
-        englishAuction = EnglishAuction(
-            auctionFactory.englishAuctionImplementation()
+        // Deploy factory with pre-deployed implementations
+        auctionFactory = new AuctionFactory(
+            admin,
+            address(englishImpl),
+            address(dutchImpl)
         );
-        dutchAuction = DutchAuction(
-            auctionFactory.dutchAuctionImplementation()
-        );
+
+        // Store references
+        englishAuction = EnglishAuction(address(englishImpl));
+        dutchAuction = DutchAuction(address(dutchImpl));
 
         console.log("  EnglishAuction:", address(englishAuction));
         console.log("  DutchAuction:", address(dutchAuction));
@@ -365,9 +372,9 @@ contract DeployAll is Script {
             }
         }
 
-        // Skip configuration in deployAll() - will be done separately in configureSystem()
-        // _configureHubs();
-        // _configureRegistries();
+        // Configure hubs and registries
+        _configureHubs();
+        _configureRegistries();
 
         console.log("  HubExchangeRegistry:", address(hubExchangeRegistry));
         console.log("  HubCollectionRegistry:", address(hubCollectionRegistry));

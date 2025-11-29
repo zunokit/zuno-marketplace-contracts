@@ -5,6 +5,8 @@ import "forge-std/Test.sol";
 import "src/core/auction/EnglishAuction.sol";
 import "src/core/auction/DutchAuction.sol";
 import "src/core/factory/AuctionFactory.sol";
+import "src/core/proxy/EnglishAuctionImplementation.sol";
+import "src/core/proxy/DutchAuctionImplementation.sol";
 import "src/interfaces/IAuction.sol";
 import "src/errors/AuctionErrors.sol";
 import "test/mocks/MockERC721.sol";
@@ -36,9 +38,11 @@ contract AuctionCancellationTest is Test {
     function setUp() public {
         // Deploy contracts
         mockERC721 = new MockERC721("Test NFT", "TNFT");
-        auctionFactory = new AuctionFactory(MARKETPLACE_WALLET);
-        englishAuction = auctionFactory.englishAuction();
-        dutchAuction = auctionFactory.dutchAuction();
+        EnglishAuctionImplementation englishImpl = new EnglishAuctionImplementation();
+        DutchAuctionImplementation dutchImpl = new DutchAuctionImplementation();
+        auctionFactory = new AuctionFactory(MARKETPLACE_WALLET, address(englishImpl), address(dutchImpl));
+        englishAuction = EnglishAuction(address(englishImpl));
+        dutchAuction = DutchAuction(address(dutchImpl));
 
         // Mint test NFTs
         mockERC721.mint(SELLER, 1);
