@@ -271,6 +271,77 @@ contract BaseCollectionCoverageTest is Test {
         assertTrue(testableCollection.isInAllowlist(address(1000)));
         assertTrue(testableCollection.isInAllowlist(address(1099)));
     }
+
+    // ============================================================================
+    // ALLOWLIST ONLY MODE TESTS
+    // ============================================================================
+
+    function test_SetAllowlistOnly() public {
+        assertFalse(testableCollection.isAllowlistOnly());
+
+        vm.prank(CREATOR);
+        testableCollection.setAllowlistOnly(true);
+
+        assertTrue(testableCollection.isAllowlistOnly());
+    }
+
+    function test_SetAllowlistOnly_OnlyOwner() public {
+        vm.prank(USER);
+        vm.expectRevert();
+        testableCollection.setAllowlistOnly(true);
+    }
+
+    function test_SetAllowlistStageEnd() public {
+        uint256 newEndTime = block.timestamp + 7 days;
+
+        vm.prank(CREATOR);
+        testableCollection.setAllowlistStageEnd(newEndTime);
+
+        assertEq(testableCollection.getAllowlistStageEnd(), newEndTime);
+    }
+
+    function test_SetAllowlistStageEnd_OnlyOwner() public {
+        vm.prank(USER);
+        vm.expectRevert();
+        testableCollection.setAllowlistStageEnd(block.timestamp + 1 days);
+    }
+
+    function test_RemoveFromAllowlist() public {
+        // First add to allowlist
+        address[] memory addresses = new address[](2);
+        addresses[0] = USER;
+        addresses[1] = address(0x123);
+
+        vm.prank(CREATOR);
+        testableCollection.addToAllowlist(addresses);
+
+        assertTrue(testableCollection.isInAllowlist(USER));
+        assertTrue(testableCollection.isInAllowlist(address(0x123)));
+
+        // Remove from allowlist
+        vm.prank(CREATOR);
+        testableCollection.removeFromAllowlist(addresses);
+
+        assertFalse(testableCollection.isInAllowlist(USER));
+        assertFalse(testableCollection.isInAllowlist(address(0x123)));
+    }
+
+    function test_RemoveFromAllowlist_OnlyOwner() public {
+        address[] memory addresses = new address[](1);
+        addresses[0] = USER;
+
+        vm.prank(USER);
+        vm.expectRevert();
+        testableCollection.removeFromAllowlist(addresses);
+    }
+
+    function test_RemoveFromAllowlist_EmptyArray() public {
+        address[] memory addresses = new address[](0);
+
+        vm.prank(CREATOR);
+        vm.expectRevert(abi.encodeWithSelector(Collection__InvalidAmount.selector));
+        testableCollection.removeFromAllowlist(addresses);
+    }
 }
 
 /**
