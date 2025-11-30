@@ -190,6 +190,173 @@ contract AuctionFactory is Ownable, Pausable, ReentrancyGuard {
     }
 
     // ============================================================================
+    // BATCH AUCTION CREATION FUNCTIONS
+    // ============================================================================
+
+    /// @notice Struct for batch English auction parameters
+    struct BatchEnglishParams {
+        address nftContract;
+        uint256 startPrice;
+        uint256 reservePrice;
+        uint256 duration;
+    }
+
+    /**
+     * @notice Creates multiple English auctions in a single transaction
+     * @param nftContract Address of the NFT contract (same for all)
+     * @param tokenIds Array of token IDs to auction
+     * @param amounts Array of amounts to auction (1 for ERC721)
+     * @param startPrice Starting price for all auctions
+     * @param reservePrice Reserve price for all auctions
+     * @param duration Auction duration in seconds for all auctions
+     * @return auctionIds Array of unique identifiers for the created auctions
+     */
+    function batchCreateEnglishAuction(
+        address nftContract,
+        uint256[] calldata tokenIds,
+        uint256[] calldata amounts,
+        uint256 startPrice,
+        uint256 reservePrice,
+        uint256 duration
+    ) external whenNotPaused nonReentrant returns (bytes32[] memory auctionIds) {
+        uint256 length = tokenIds.length;
+        require(length > 0, "Empty array");
+        require(length == amounts.length, "Array length mismatch");
+        require(length <= 20, "Max 20 auctions per batch");
+
+        // Validate all NFTs first
+        for (uint256 i = 0; i < length; i++) {
+            _validateNFTAvailability(nftContract, tokenIds[i], msg.sender);
+        }
+
+        BatchEnglishParams memory batchParams = BatchEnglishParams({
+            nftContract: nftContract,
+            startPrice: startPrice,
+            reservePrice: reservePrice,
+            duration: duration
+        });
+
+        auctionIds = _batchCreateEnglishInternal(batchParams, tokenIds, amounts);
+        return auctionIds;
+    }
+
+    /**
+     * @notice Internal function for batch English auction creation
+     */
+    function _batchCreateEnglishInternal(
+        BatchEnglishParams memory batchParams,
+        uint256[] calldata tokenIds,
+        uint256[] calldata amounts
+    ) internal returns (bytes32[] memory auctionIds) {
+        uint256 length = tokenIds.length;
+        auctionIds = new bytes32[](length);
+
+        for (uint256 i = 0; i < length; i++) {
+            AuctionCreationParams memory params = AuctionCreationParams({
+                nftContract: batchParams.nftContract,
+                tokenId: tokenIds[i],
+                amount: amounts[i],
+                startPrice: batchParams.startPrice,
+                reservePrice: batchParams.reservePrice,
+                duration: batchParams.duration,
+                auctionType: AuctionType.ENGLISH,
+                seller: msg.sender,
+                bidIncrement: 500,
+                extendOnBid: false
+            });
+
+            auctionIds[i] = _createEnglishAuctionInternal(params);
+        }
+
+        return auctionIds;
+    }
+
+    /// @notice Struct for batch Dutch auction parameters
+    struct BatchDutchParams {
+        address nftContract;
+        uint256 startPrice;
+        uint256 reservePrice;
+        uint256 duration;
+        uint256 priceDropPerHour;
+    }
+
+    /**
+     * @notice Creates multiple Dutch auctions in a single transaction
+     * @param nftContract Address of the NFT contract (same for all)
+     * @param tokenIds Array of token IDs to auction
+     * @param amounts Array of amounts to auction (1 for ERC721)
+     * @param startPrice Starting price for all auctions
+     * @param reservePrice Reserve price for all auctions
+     * @param duration Auction duration in seconds for all auctions
+     * @param priceDropPerHour Price drop percentage per hour (in basis points)
+     * @return auctionIds Array of unique identifiers for the created auctions
+     */
+    function batchCreateDutchAuction(
+        address nftContract,
+        uint256[] calldata tokenIds,
+        uint256[] calldata amounts,
+        uint256 startPrice,
+        uint256 reservePrice,
+        uint256 duration,
+        uint256 priceDropPerHour
+    ) external whenNotPaused nonReentrant returns (bytes32[] memory auctionIds) {
+        uint256 length = tokenIds.length;
+        require(length > 0, "Empty array");
+        require(length == amounts.length, "Array length mismatch");
+        require(length <= 20, "Max 20 auctions per batch");
+
+        // Validate all NFTs first
+        for (uint256 i = 0; i < length; i++) {
+            _validateNFTAvailability(nftContract, tokenIds[i], msg.sender);
+        }
+
+        BatchDutchParams memory batchParams = BatchDutchParams({
+            nftContract: nftContract,
+            startPrice: startPrice,
+            reservePrice: reservePrice,
+            duration: duration,
+            priceDropPerHour: priceDropPerHour
+        });
+
+        auctionIds = _batchCreateDutchInternal(batchParams, tokenIds, amounts);
+        return auctionIds;
+    }
+
+    /**
+     * @notice Internal function for batch Dutch auction creation
+     */
+    function _batchCreateDutchInternal(
+        BatchDutchParams memory batchParams,
+        uint256[] calldata tokenIds,
+        uint256[] calldata amounts
+    ) internal returns (bytes32[] memory auctionIds) {
+        uint256 length = tokenIds.length;
+        auctionIds = new bytes32[](length);
+
+        for (uint256 i = 0; i < length; i++) {
+            DutchAuctionParams memory params = DutchAuctionParams({
+                baseParams: AuctionCreationParams({
+                    nftContract: batchParams.nftContract,
+                    tokenId: tokenIds[i],
+                    amount: amounts[i],
+                    startPrice: batchParams.startPrice,
+                    reservePrice: batchParams.reservePrice,
+                    duration: batchParams.duration,
+                    auctionType: AuctionType.DUTCH,
+                    seller: msg.sender,
+                    bidIncrement: 0,
+                    extendOnBid: false
+                }),
+                priceDropPerHour: batchParams.priceDropPerHour
+            });
+
+            auctionIds[i] = _createDutchAuctionInternal(params);
+        }
+
+        return auctionIds;
+    }
+
+    // ============================================================================
     // AUCTION INTERACTION FUNCTIONS
     // ============================================================================
 
