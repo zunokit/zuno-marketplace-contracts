@@ -412,6 +412,47 @@ contract AuctionFactory is Ownable, Pausable, ReentrancyGuard {
     }
 
     /**
+     * @notice Cancels multiple auctions in a single transaction
+     * @param auctionIds Array of auction IDs to cancel
+     * @return cancelledCount Number of auctions successfully cancelled
+     * @dev Only auctions owned by msg.sender will be cancelled, others are skipped
+     */
+    function batchCancelAuction(bytes32[] calldata auctionIds) external nonReentrant whenNotPaused returns (uint256 cancelledCount) {
+        uint256 length = auctionIds.length;
+        require(length > 0, "Empty array");
+        require(length <= 20, "Max 20 cancellations per batch");
+
+        for (uint256 i = 0; i < length; i++) {
+            bytes32 auctionId = auctionIds[i];
+            address auctionContract = auctionToContract[auctionId];
+            
+            // Skip if auction doesn't exist
+            if (auctionContract == address(0)) {
+                continue;
+            }
+
+            // Get auction details
+            IAuction.Auction memory auction = IAuction(auctionContract).getAuction(auctionId);
+            
+            // Skip if not the seller
+            if (auction.seller != msg.sender) {
+                continue;
+            }
+
+            // Try to cancel, skip on failure (e.g., auction already ended)
+            try IAuction(auctionContract).cancelAuctionFor(auctionId, msg.sender) {
+                _notifyValidatorAuctionCancelled(auction.nftContract, auction.tokenId, auction.seller);
+                cancelledCount++;
+            } catch {
+                // Skip failed cancellations
+                continue;
+            }
+        }
+
+        return cancelledCount;
+    }
+
+    /**
      * @notice Settles a completed auction
      * @param auctionId Unique identifier of the auction
      */
