@@ -127,6 +127,26 @@ event CollectionVerified(address indexed collectionAddress);
 event CollectionUnverified(address indexed collectionAddress);
 
 // ============================================================================
+// LISTING EXPIRATION EVENTS
+// ============================================================================
+
+/**
+ * @notice Emitted when a listing is marked as expired
+ * @param listingId Unique identifier for the listing
+ * @param contractAddress NFT contract address
+ * @param tokenId Token ID that expired
+ * @param seller Address of the seller
+ * @param expiredAt Timestamp when listing expired
+ */
+event ListingExpired(
+    bytes32 indexed listingId,
+    address indexed contractAddress,
+    uint256 indexed tokenId,
+    address seller,
+    uint256 expiredAt
+);
+
+// ============================================================================
 // NOTE: Auction and Collection Creation Events
 // ============================================================================
 // For comprehensive auction events, use AuctionEvents.sol

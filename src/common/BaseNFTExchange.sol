@@ -38,7 +38,8 @@ contract BaseNFTExchange is Initializable, Ownable, ReentrancyGuard, ERC165, IEx
         Active,
         Sold,
         Failed,
-        Cancelled
+        Cancelled,
+        Expired
     }
 
     // Constants
@@ -552,5 +553,133 @@ contract BaseNFTExchange is Initializable, Ownable, ReentrancyGuard, ERC165, IEx
         }
 
         return listed;
+    }
+
+    // ============================================================================
+    // EXPIRED LISTING CLEANUP FUNCTIONS
+    // ============================================================================
+
+    /**
+     * @notice Check if a listing has expired based on time
+     * @param listingId The listing ID to check
+     * @return isExpired True if the listing duration has passed
+     */
+    function isListingExpired(bytes32 listingId) public view returns (bool isExpired) {
+        Listing storage listing = s_listings[listingId];
+        if (listing.status != ListingStatus.Active) {
+            return false;
+        }
+        return block.timestamp >= listing.listingStart + listing.listingDuration;
+    }
+
+    /**
+     * @notice Cleanup a single expired listing by updating its status
+     * @dev Anyone can call this to help maintain contract state
+     * @param listingId The listing ID to cleanup
+     * @return cleaned True if the listing was cleaned up
+     */
+    function cleanupExpiredListing(bytes32 listingId) public returns (bool cleaned) {
+        Listing storage listing = s_listings[listingId];
+
+        // Only cleanup active listings that have expired
+        if (listing.status != ListingStatus.Active) {
+            return false;
+        }
+
+        uint256 expirationTime = listing.listingStart + listing.listingDuration;
+        if (block.timestamp < expirationTime) {
+            return false;
+        }
+
+        // Update status to Expired
+        listing.status = ListingStatus.Expired;
+
+        // Remove from arrays
+        _removeListingFromArray(s_listingsByCollection[listing.contractAddress], listingId);
+        _removeListingFromArray(s_listingsBySeller[listing.seller], listingId);
+
+        // Remove from active listings mapping
+        delete s_activeListings[listing.contractAddress][listing.tokenId][listing.seller];
+
+        // Emit event
+        emit ListingExpired(
+            listingId,
+            listing.contractAddress,
+            listing.tokenId,
+            listing.seller,
+            expirationTime
+        );
+
+        return true;
+    }
+
+    /**
+     * @notice Batch cleanup multiple expired listings
+     * @dev Anyone can call this to help maintain contract state
+     * @param listingIds Array of listing IDs to cleanup
+     * @return cleanedCount Number of listings that were cleaned up
+     */
+    function batchCleanupExpiredListings(bytes32[] calldata listingIds) external returns (uint256 cleanedCount) {
+        for (uint256 i = 0; i < listingIds.length; i++) {
+            if (cleanupExpiredListing(listingIds[i])) {
+                cleanedCount++;
+            }
+        }
+        return cleanedCount;
+    }
+
+    /**
+     * @notice Get expired listing IDs for a seller (for cleanup purposes)
+     * @param seller Seller address
+     * @return expiredListings Array of expired listing IDs
+     */
+    function getExpiredListingsBySeller(address seller) external view returns (bytes32[] memory expiredListings) {
+        bytes32[] memory allListings = s_listingsBySeller[seller];
+        uint256 expiredCount = 0;
+
+        // First pass: count expired listings
+        for (uint256 i = 0; i < allListings.length; i++) {
+            Listing storage listing = s_listings[allListings[i]];
+            if (
+                listing.status == ListingStatus.Active
+                    && block.timestamp >= listing.listingStart + listing.listingDuration
+            ) {
+                expiredCount++;
+            }
+        }
+
+        // Second pass: populate array
+        expiredListings = new bytes32[](expiredCount);
+        uint256 currentIndex = 0;
+        for (uint256 i = 0; i < allListings.length; i++) {
+            Listing storage listing = s_listings[allListings[i]];
+            if (
+                listing.status == ListingStatus.Active
+                    && block.timestamp >= listing.listingStart + listing.listingDuration
+            ) {
+                expiredListings[currentIndex] = allListings[i];
+                currentIndex++;
+            }
+        }
+
+        return expiredListings;
+    }
+
+    /**
+     * @notice Get the real status of a listing (accounts for time-based expiration)
+     * @param listingId The listing ID to check
+     * @return status The real status (Expired if time has passed even if stored as Active)
+     */
+    function getRealListingStatus(bytes32 listingId) external view returns (ListingStatus status) {
+        Listing storage listing = s_listings[listingId];
+
+        // If stored status is Active but time has expired, return Expired
+        if (listing.status == ListingStatus.Active) {
+            if (block.timestamp >= listing.listingStart + listing.listingDuration) {
+                return ListingStatus.Expired;
+            }
+        }
+
+        return listing.status;
     }
 }
