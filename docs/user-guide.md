@@ -148,10 +148,11 @@ const exchange = new ethers.Contract(exchangeAddress, ExchangeABI, signer);
 After deployment, you'll get:
 
 ```
-MarketplaceHub: 0x... (SAVE THIS!)
+UserHub: 0x... (SAVE THIS!)
+AdminHub: 0x... (Admin operations)
 ```
 
-All other addresses can be retrieved via hub:
+All other addresses can be retrieved via UserHub:
 
 ```javascript
 // Get individual addresses

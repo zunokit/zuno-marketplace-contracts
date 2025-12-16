@@ -6,11 +6,11 @@ import "forge-std/console2.sol";
 
 // Core contracts
 import {MarketplaceValidator} from "src/core/validation/MarketplaceValidator.sol";
-import {NFTExchangeFactory} from "src/core/factory/NFTExchangeFactory.sol";
-import {NFTExchangeRegistry} from "src/core/exchange/NFTExchangeRegistry.sol";
 import {ERC721NFTExchange} from "src/core/exchange/ERC721NFTExchange.sol";
 import {ERC1155NFTExchange} from "src/core/exchange/ERC1155NFTExchange.sol";
 import {AuctionFactory} from "src/core/factory/AuctionFactory.sol";
+import {EnglishAuctionImplementation} from "src/core/proxy/EnglishAuctionImplementation.sol";
+import {DutchAuctionImplementation} from "src/core/proxy/DutchAuctionImplementation.sol";
 import {OfferManager} from "src/core/offers/OfferManager.sol";
 import {BundleManager} from "src/core/bundles/BundleManager.sol";
 import {MarketplaceAccessControl} from "src/core/access/MarketplaceAccessControl.sol";
@@ -19,7 +19,6 @@ import {AdvancedFeeManager} from "src/core/fees/AdvancedFeeManager.sol";
 // Collection contracts
 import {ERC721CollectionFactory} from "src/core/factory/ERC721CollectionFactory.sol";
 import {ERC1155CollectionFactory} from "src/core/factory/ERC1155CollectionFactory.sol";
-import {CollectionFactoryRegistry} from "src/core/factory/CollectionFactoryRegistry.sol";
 
 // Mock contracts
 import {MockERC721} from "test/mocks/MockERC721.sol";
@@ -33,8 +32,6 @@ import {MockERC20} from "test/mocks/MockERC20.sol";
 contract SimpleMarketplaceIntegrationTest is Test {
     // Core contracts
     MarketplaceValidator public validator;
-    NFTExchangeFactory public exchangeFactory;
-    NFTExchangeRegistry public exchangeRegistry;
     ERC721NFTExchange public erc721Exchange;
     ERC1155NFTExchange public erc1155Exchange;
     AuctionFactory public auctionFactory;
@@ -46,7 +43,6 @@ contract SimpleMarketplaceIntegrationTest is Test {
     // Collection contracts
     ERC721CollectionFactory public erc721Factory;
     ERC1155CollectionFactory public erc1155Factory;
-    CollectionFactoryRegistry public factoryRegistry;
 
     // Mock contracts
     MockERC721 public mockERC721;
@@ -98,27 +94,16 @@ contract SimpleMarketplaceIntegrationTest is Test {
         accessControl = new MarketplaceAccessControl();
         feeManager = new AdvancedFeeManager(address(accessControl), marketplaceWallet);
 
-        // Deploy exchange factory
-        exchangeFactory = new NFTExchangeFactory(marketplaceWallet);
+        // Deploy exchanges directly
+        erc721Exchange = new ERC721NFTExchange();
+        erc721Exchange.initialize(marketplaceWallet, owner);
 
-        // Deploy implementation contracts
-        address erc721Impl = address(new ERC721NFTExchange());
-        address erc1155Impl = address(new ERC1155NFTExchange());
+        erc1155Exchange = new ERC1155NFTExchange();
+        erc1155Exchange.initialize(marketplaceWallet, owner);
 
-        // Set implementations
-        exchangeFactory.setImplementation(NFTExchangeFactory.ExchangeType.ERC721, erc721Impl);
-        exchangeFactory.setImplementation(NFTExchangeFactory.ExchangeType.ERC1155, erc1155Impl);
-
-        // Create exchanges
-        address erc721Addr = exchangeFactory.createExchange(NFTExchangeFactory.ExchangeType.ERC721);
-        address erc1155Addr = exchangeFactory.createExchange(NFTExchangeFactory.ExchangeType.ERC1155);
-
-        erc721Exchange = ERC721NFTExchange(erc721Addr);
-        erc1155Exchange = ERC1155NFTExchange(erc1155Addr);
-
-        exchangeRegistry = new NFTExchangeRegistry(address(exchangeFactory));
-
-        auctionFactory = new AuctionFactory(marketplaceWallet);
+        EnglishAuctionImplementation englishImpl = new EnglishAuctionImplementation();
+        DutchAuctionImplementation dutchImpl = new DutchAuctionImplementation();
+        auctionFactory = new AuctionFactory(marketplaceWallet, address(englishImpl), address(dutchImpl));
     }
 
     function _deployCollectionSystem() internal {
@@ -126,8 +111,6 @@ contract SimpleMarketplaceIntegrationTest is Test {
 
         erc721Factory = new ERC721CollectionFactory();
         erc1155Factory = new ERC1155CollectionFactory();
-
-        factoryRegistry = new CollectionFactoryRegistry(address(erc721Factory), address(erc1155Factory));
     }
 
     function _deployAdvancedFeatures() internal {
@@ -176,14 +159,11 @@ contract SimpleMarketplaceIntegrationTest is Test {
         // Approve exchanges for NFT transfers
         vm.startPrank(user1);
         mockERC721.setApprovalForAll(address(erc721Exchange), true);
-        mockERC721.setApprovalForAll(address(exchangeRegistry), true);
         mockERC1155.setApprovalForAll(address(erc1155Exchange), true);
-        mockERC1155.setApprovalForAll(address(exchangeRegistry), true);
         vm.stopPrank();
 
         vm.startPrank(user2);
         mockERC1155.setApprovalForAll(address(erc1155Exchange), true);
-        mockERC1155.setApprovalForAll(address(exchangeRegistry), true);
         vm.stopPrank();
     }
 
@@ -203,7 +183,7 @@ contract SimpleMarketplaceIntegrationTest is Test {
 
         // Step 2: Buy NFT
         vm.startPrank(user2);
-        uint256 totalPrice = PRICE_1_ETH + (PRICE_1_ETH * 500) / 10000; // Include fees
+        uint256 totalPrice = erc721Exchange.getBuyerSeesPrice(listingId);
         erc721Exchange.buyNFT{value: totalPrice}(listingId);
         console2.log("NFT purchased successfully");
         vm.stopPrank();
@@ -231,9 +211,9 @@ contract SimpleMarketplaceIntegrationTest is Test {
         // Step 2: Buy partial amount
         vm.startPrank(user2);
         uint256 buyAmount = 3;
-        // Calculate proportional price: (buyAmount / listAmount) * listingPrice
-        uint256 proportionalPrice = (PRICE_1_ETH * buyAmount) / listAmount;
-        uint256 totalPrice = proportionalPrice + (proportionalPrice * 500) / 10000; // Add fees
+        // Get full listing price and calculate proportional amount
+        uint256 fullPrice = erc1155Exchange.getBuyerSeesPrice(listingId);
+        uint256 totalPrice = (fullPrice * buyAmount) / listAmount;
         erc1155Exchange.buyNFT{value: totalPrice}(listingId, buyAmount);
         console2.log("ERC1155 purchased successfully");
         vm.stopPrank();
@@ -321,7 +301,7 @@ contract SimpleMarketplaceIntegrationTest is Test {
 
         // Verify core contracts
         assertTrue(address(validator) != address(0));
-        assertTrue(address(exchangeRegistry) != address(0));
+        assertTrue(address(erc721Exchange) != address(0));
         assertTrue(address(erc721Exchange) != address(0));
         assertTrue(address(erc1155Exchange) != address(0));
         assertTrue(address(auctionFactory) != address(0));

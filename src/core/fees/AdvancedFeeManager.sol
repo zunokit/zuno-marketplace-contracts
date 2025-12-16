@@ -5,14 +5,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 import "src/core/access/MarketplaceAccessControl.sol";
-import {
-    FeeConfig,
-    FeeTierConfig,
-    FeeTier,
-    CollectionFeeOverride,
-    UserVolumeData,
-    VIPStatus
-} from "src/types/FeeTypes.sol";
+import {FeeConfig, FeeTierConfig, FeeTier, CollectionFeeOverride, UserVolumeData, VIPStatus} from "src/types/FeeTypes.sol";
 import "src/errors/FeeErrors.sol";
 import "src/events/FeeEvents.sol";
 
@@ -60,7 +53,7 @@ contract AdvancedFeeManager is Ownable, ReentrancyGuard, Pausable {
     // ============================================================================
     // STRUCTS - Now imported from src/types/FeeTypes.sol
     // ============================================================================
-    // Using FeeConfig, FeeTierConfig, FeeTier, CollectionFeeOverride, 
+    // Using FeeConfig, FeeTierConfig, FeeTier, CollectionFeeOverride,
     // UserVolumeData, VIPStatus from FeeTypes.sol
 
     // ============================================================================
@@ -68,10 +61,19 @@ contract AdvancedFeeManager is Ownable, ReentrancyGuard, Pausable {
     // ============================================================================
 
     event FeeConfigUpdated(
-        uint256 oldMakerFee, uint256 newMakerFee, uint256 oldTakerFee, uint256 newTakerFee, address updatedBy
+        uint256 oldMakerFee,
+        uint256 newMakerFee,
+        uint256 oldTakerFee,
+        uint256 newTakerFee,
+        address updatedBy
     );
 
-    event FeeTierUpdated(address indexed user, uint256 oldTierId, uint256 newTierId, uint256 newDiscountBps);
+    event FeeTierUpdated(
+        address indexed user,
+        uint256 oldTierId,
+        uint256 newTierId,
+        uint256 newDiscountBps
+    );
 
     event CollectionFeeOverrideSet(
         address indexed collection,
@@ -82,11 +84,18 @@ contract AdvancedFeeManager is Ownable, ReentrancyGuard, Pausable {
     );
 
     event VIPStatusUpdated(
-        address indexed user, bool isVIP, uint256 discountBps, uint256 expiryTimestamp, string vipTier
+        address indexed user,
+        bool isVIP,
+        uint256 discountBps,
+        uint256 expiryTimestamp,
+        string vipTier
     );
 
     event UserVolumeUpdated(
-        address indexed user, uint256 newTotalVolume, uint256 newLast30DaysVolume, uint256 tradeCount
+        address indexed user,
+        uint256 newTotalVolume,
+        uint256 newLast30DaysVolume,
+        uint256 tradeCount
     );
 
     event FeesCalculated(
@@ -131,7 +140,10 @@ contract AdvancedFeeManager is Ownable, ReentrancyGuard, Pausable {
      * @param _accessControl Address of the access control contract
      * @param _feeRecipient Address to receive marketplace fees
      */
-    constructor(address _accessControl, address _feeRecipient) Ownable(msg.sender) {
+    constructor(
+        address _accessControl,
+        address _feeRecipient
+    ) Ownable(msg.sender) {
         if (_accessControl == address(0) || _feeRecipient == address(0)) {
             revert Fee__InvalidOwner();
         }
@@ -157,11 +169,12 @@ contract AdvancedFeeManager is Ownable, ReentrancyGuard, Pausable {
      * @return finalFee The calculated fee amount
      * @return appliedDiscount The total discount applied
      */
-    function calculateFees(address user, address collection, uint256 salePrice, bool isMaker)
-        external
-        view
-        returns (uint256 finalFee, uint256 appliedDiscount)
-    {
+    function calculateFees(
+        address user,
+        address collection,
+        uint256 salePrice,
+        bool isMaker
+    ) external view returns (uint256 finalFee, uint256 appliedDiscount) {
         // Step 1: Calculate base fees
         uint256 baseFee = _calculateBaseFees(collection, salePrice, isMaker);
 
@@ -169,7 +182,10 @@ contract AdvancedFeeManager is Ownable, ReentrancyGuard, Pausable {
         uint256 userDiscount = _calculateUserDiscount(user);
 
         // Step 3: Apply collection-specific overrides
-        (uint256 collectionFee, uint256 collectionDiscount) = _applyCollectionOverride(collection, baseFee, isMaker);
+        (
+            uint256 collectionFee,
+            uint256 collectionDiscount
+        ) = _applyCollectionOverride(collection, baseFee, isMaker);
 
         // Step 4: Apply final discount calculation
         uint256 totalDiscount = userDiscount + collectionDiscount;
@@ -189,11 +205,10 @@ contract AdvancedFeeManager is Ownable, ReentrancyGuard, Pausable {
      * @param user Address of the user
      * @param tradeVolume Volume of the trade
      */
-    function updateUserVolume(address user, uint256 tradeVolume)
-        external
-        onlyRole(accessControl.OPERATOR_ROLE())
-        nonReentrant
-    {
+    function updateUserVolume(
+        address user,
+        uint256 tradeVolume
+    ) external onlyRole(accessControl.OPERATOR_ROLE()) nonReentrant {
         UserVolumeData storage userData = userVolumeData[user];
 
         // Update volume data
@@ -210,7 +225,12 @@ contract AdvancedFeeManager is Ownable, ReentrancyGuard, Pausable {
         // Recalculate user's fee tier
         _updateUserFeeTier(user);
 
-        emit UserVolumeUpdated(user, userData.totalVolume, userData.last30DaysVolume, userData.tradeCount);
+        emit UserVolumeUpdated(
+            user,
+            userData.totalVolume,
+            userData.last30DaysVolume,
+            userData.tradeCount
+        );
     }
 
     // ============================================================================
@@ -220,7 +240,11 @@ contract AdvancedFeeManager is Ownable, ReentrancyGuard, Pausable {
     /**
      * @notice Calculates base fees before discounts
      */
-    function _calculateBaseFees(address collection, uint256 salePrice, bool isMaker) internal view returns (uint256) {
+    function _calculateBaseFees(
+        address collection,
+        uint256 salePrice,
+        bool isMaker
+    ) internal view returns (uint256) {
         FeeConfig memory config = baseFeeConfig;
 
         if (!config.isActive) {
@@ -234,7 +258,9 @@ contract AdvancedFeeManager is Ownable, ReentrancyGuard, Pausable {
     /**
      * @notice Calculates user-specific discount
      */
-    function _calculateUserDiscount(address user) internal view returns (uint256) {
+    function _calculateUserDiscount(
+        address user
+    ) internal view returns (uint256) {
         uint256 totalDiscount = 0;
 
         // Add fee tier discount
@@ -253,25 +279,31 @@ contract AdvancedFeeManager is Ownable, ReentrancyGuard, Pausable {
     /**
      * @notice Applies collection-specific fee overrides
      */
-    function _applyCollectionOverride(address collection, uint256 baseFee, bool isMaker)
-        internal
-        view
-        returns (uint256 finalFee, uint256 collectionDiscount)
-    {
-        CollectionFeeOverride memory feeOverride = collectionFeeOverrides[collection];
+    function _applyCollectionOverride(
+        address collection,
+        uint256 baseFee,
+        bool isMaker
+    ) internal view returns (uint256 finalFee, uint256 collectionDiscount) {
+        CollectionFeeOverride memory feeOverride = collectionFeeOverrides[
+            collection
+        ];
 
         if (!feeOverride.hasOverride) {
             return (baseFee, 0);
         }
 
         // Apply collection-specific fee override rates
-        uint256 overrideRate = isMaker ? feeOverride.makerFeeOverride : feeOverride.takerFeeOverride;
+        uint256 overrideRate = isMaker
+            ? feeOverride.makerFeeOverride
+            : feeOverride.takerFeeOverride;
         if (overrideRate > 0) {
             // Calculate fee using override rate instead of base fee
             // Need to extract sale price from baseFee calculation
             // baseFee = (salePrice * baseRate) / 10000
             // So salePrice = (baseFee * 10000) / baseRate
-            uint256 baseRate = isMaker ? baseFeeConfig.makerFee : baseFeeConfig.takerFee;
+            uint256 baseRate = isMaker
+                ? baseFeeConfig.makerFee
+                : baseFeeConfig.takerFee;
             uint256 salePrice = (baseFee * 10000) / baseRate;
             finalFee = (salePrice * overrideRate) / 10000;
         } else {
@@ -292,7 +324,11 @@ contract AdvancedFeeManager is Ownable, ReentrancyGuard, Pausable {
     /**
      * @notice Validates fee parameters
      */
-    function _validateFeeParams(uint256 makerFee, uint256 takerFee, uint256 listingFee) internal pure {
+    function _validateFeeParams(
+        uint256 makerFee,
+        uint256 takerFee,
+        uint256 listingFee
+    ) internal pure {
         if (makerFee > 1000 || takerFee > 1000) {
             // Max 10%
             revert Fee__InvalidRoyaltyFee();
@@ -312,7 +348,10 @@ contract AdvancedFeeManager is Ownable, ReentrancyGuard, Pausable {
         // Find appropriate tier based on volume
         for (uint256 i = feeTierConfigs.length; i > 0; i--) {
             FeeTierConfig memory tierConfig = feeTierConfigs[i - 1];
-            if (tierConfig.isActive && userData.totalVolume >= tierConfig.volumeThreshold) {
+            if (
+                tierConfig.isActive &&
+                userData.totalVolume >= tierConfig.volumeThreshold
+            ) {
                 newTierId = i - 1;
                 newDiscountBps = tierConfig.discountBps;
                 break;
@@ -321,7 +360,11 @@ contract AdvancedFeeManager is Ownable, ReentrancyGuard, Pausable {
 
         // Update tier if changed
         if (newTierId != currentTierId) {
-            userFeeTiers[user] = FeeTier({tierId: newTierId, discountBps: newDiscountBps, lastUpdated: block.timestamp});
+            userFeeTiers[user] = FeeTier({
+                tierId: newTierId,
+                discountBps: newDiscountBps,
+                lastUpdated: block.timestamp
+            });
 
             emit FeeTierUpdated(user, currentTierId, newTierId, newDiscountBps);
         }
@@ -346,21 +389,43 @@ contract AdvancedFeeManager is Ownable, ReentrancyGuard, Pausable {
      */
     function _initializeDefaultTiers() internal {
         // Tier 0: Bronze (0-10 ETH volume) - 0% discount
-        feeTierConfigs.push(FeeTierConfig({volumeThreshold: 0, discountBps: 0, tierName: "Bronze", isActive: true}));
+        feeTierConfigs.push(
+            FeeTierConfig({
+                volumeThreshold: 0,
+                discountBps: 0,
+                tierName: "Bronze",
+                isActive: true
+            })
+        );
 
         // Tier 1: Silver (10-50 ETH volume) - 0.5% discount
         feeTierConfigs.push(
-            FeeTierConfig({volumeThreshold: 10 ether, discountBps: 50, tierName: "Silver", isActive: true})
+            FeeTierConfig({
+                volumeThreshold: 10 ether,
+                discountBps: 50,
+                tierName: "Silver",
+                isActive: true
+            })
         );
 
         // Tier 2: Gold (50-200 ETH volume) - 1% discount
         feeTierConfigs.push(
-            FeeTierConfig({volumeThreshold: 50 ether, discountBps: 100, tierName: "Gold", isActive: true})
+            FeeTierConfig({
+                volumeThreshold: 50 ether,
+                discountBps: 100,
+                tierName: "Gold",
+                isActive: true
+            })
         );
 
         // Tier 3: Platinum (200+ ETH volume) - 2% discount
         feeTierConfigs.push(
-            FeeTierConfig({volumeThreshold: 200 ether, discountBps: 200, tierName: "Platinum", isActive: true})
+            FeeTierConfig({
+                volumeThreshold: 200 ether,
+                discountBps: 200,
+                tierName: "Platinum",
+                isActive: true
+            })
         );
     }
 
@@ -372,18 +437,24 @@ contract AdvancedFeeManager is Ownable, ReentrancyGuard, Pausable {
      * @notice Updates base fee configuration
      * @param newConfig New fee configuration
      */
-    function updateBaseFeeConfig(FeeConfig calldata newConfig)
-        external
-        onlyRole(accessControl.ADMIN_ROLE())
-        nonReentrant
-    {
-        _validateFeeParams(newConfig.makerFee, newConfig.takerFee, newConfig.listingFee);
+    function updateBaseFeeConfig(
+        FeeConfig calldata newConfig
+    ) external onlyRole(accessControl.ADMIN_ROLE()) nonReentrant {
+        _validateFeeParams(
+            newConfig.makerFee,
+            newConfig.takerFee,
+            newConfig.listingFee
+        );
 
         FeeConfig memory oldConfig = baseFeeConfig;
         baseFeeConfig = newConfig;
 
         emit FeeConfigUpdated(
-            oldConfig.makerFee, newConfig.makerFee, oldConfig.takerFee, newConfig.takerFee, msg.sender
+            oldConfig.makerFee,
+            newConfig.makerFee,
+            oldConfig.takerFee,
+            newConfig.takerFee,
+            msg.sender
         );
     }
 
@@ -392,11 +463,10 @@ contract AdvancedFeeManager is Ownable, ReentrancyGuard, Pausable {
      * @param collection Address of the collection
      * @param feeOverride Fee override configuration
      */
-    function setCollectionFeeOverride(address collection, CollectionFeeOverride calldata feeOverride)
-        external
-        onlyRole(accessControl.ADMIN_ROLE())
-        nonReentrant
-    {
+    function setCollectionFeeOverride(
+        address collection,
+        CollectionFeeOverride calldata feeOverride
+    ) external onlyRole(accessControl.ADMIN_ROLE()) nonReentrant {
         if (collection == address(0)) {
             revert Fee__InvalidOwner();
         }
@@ -424,18 +494,23 @@ contract AdvancedFeeManager is Ownable, ReentrancyGuard, Pausable {
      * @param user Address of the user
      * @param vipData VIP status configuration
      */
-    function updateVIPStatus(address user, VIPStatus calldata vipData)
-        external
-        onlyRole(accessControl.ADMIN_ROLE())
-        nonReentrant
-    {
+    function updateVIPStatus(
+        address user,
+        VIPStatus calldata vipData
+    ) external onlyRole(accessControl.ADMIN_ROLE()) nonReentrant {
         if (user == address(0)) {
             revert Fee__InvalidOwner();
         }
 
         vipStatus[user] = vipData;
 
-        emit VIPStatusUpdated(user, vipData.isVIP, vipData.vipDiscountBps, vipData.vipExpiryTimestamp, vipData.vipTier);
+        emit VIPStatusUpdated(
+            user,
+            vipData.isVIP,
+            vipData.vipDiscountBps,
+            vipData.vipExpiryTimestamp,
+            vipData.vipTier
+        );
     }
 
     /**
@@ -443,11 +518,10 @@ contract AdvancedFeeManager is Ownable, ReentrancyGuard, Pausable {
      * @param tierId ID of the tier to update
      * @param tierConfig New tier configuration
      */
-    function updateFeeTier(uint256 tierId, FeeTierConfig calldata tierConfig)
-        external
-        onlyRole(accessControl.ADMIN_ROLE())
-        nonReentrant
-    {
+    function updateFeeTier(
+        uint256 tierId,
+        FeeTierConfig calldata tierConfig
+    ) external onlyRole(accessControl.ADMIN_ROLE()) nonReentrant {
         if (tierId >= feeTierConfigs.length) {
             feeTierConfigs.push(tierConfig);
         } else {
@@ -459,7 +533,9 @@ contract AdvancedFeeManager is Ownable, ReentrancyGuard, Pausable {
      * @notice Updates fee recipient address
      * @param newFeeRecipient New fee recipient address
      */
-    function updateFeeRecipient(address newFeeRecipient) external onlyRole(accessControl.ADMIN_ROLE()) nonReentrant {
+    function updateFeeRecipient(
+        address newFeeRecipient
+    ) external onlyRole(accessControl.ADMIN_ROLE()) nonReentrant {
         if (newFeeRecipient == address(0)) {
             revert Fee__InvalidOwner();
         }
@@ -467,13 +543,22 @@ contract AdvancedFeeManager is Ownable, ReentrancyGuard, Pausable {
         address oldRecipient = feeRecipient;
         feeRecipient = newFeeRecipient;
 
-        emit FeeUpdated("feeRecipient", uint256(uint160(newFeeRecipient)));
+        emit FeeUpdated(
+            "feeRecipient",
+            uint256(uint160(oldRecipient)),
+            uint256(uint160(newFeeRecipient)),
+            msg.sender,
+            block.timestamp
+        );
     }
 
     /**
      * @notice Emergency pause contract
      */
-    function emergencyPause() external onlyRole(accessControl.EMERGENCY_ROLE()) {
+    function emergencyPause()
+        external
+        onlyRole(accessControl.EMERGENCY_ROLE())
+    {
         _pause();
     }
 
@@ -489,11 +574,10 @@ contract AdvancedFeeManager is Ownable, ReentrancyGuard, Pausable {
      * @param users Array of user addresses
      * @param volumes Array of volume amounts
      */
-    function batchUpdateUserVolumes(address[] calldata users, uint256[] calldata volumes)
-        external
-        onlyRole(accessControl.ADMIN_ROLE())
-        nonReentrant
-    {
+    function batchUpdateUserVolumes(
+        address[] calldata users,
+        uint256[] calldata volumes
+    ) external onlyRole(accessControl.ADMIN_ROLE()) nonReentrant {
         if (users.length != volumes.length || users.length == 0) {
             revert Fee__InvalidRoyaltyFee();
         }
@@ -514,7 +598,11 @@ contract AdvancedFeeManager is Ownable, ReentrancyGuard, Pausable {
      * @notice Gets current base fee configuration
      * @return config Current fee configuration
      */
-    function getBaseFeeConfig() external view returns (FeeConfig memory config) {
+    function getBaseFeeConfig()
+        external
+        view
+        returns (FeeConfig memory config)
+    {
         return baseFeeConfig;
     }
 
@@ -523,7 +611,9 @@ contract AdvancedFeeManager is Ownable, ReentrancyGuard, Pausable {
      * @param user Address of the user
      * @return tier User's fee tier data
      */
-    function getUserFeeTier(address user) external view returns (FeeTier memory tier) {
+    function getUserFeeTier(
+        address user
+    ) external view returns (FeeTier memory tier) {
         return userFeeTiers[user];
     }
 
@@ -532,11 +622,9 @@ contract AdvancedFeeManager is Ownable, ReentrancyGuard, Pausable {
      * @param collection Address of the collection
      * @return feeOverride Collection's fee override data
      */
-    function getCollectionFeeOverride(address collection)
-        external
-        view
-        returns (CollectionFeeOverride memory feeOverride)
-    {
+    function getCollectionFeeOverride(
+        address collection
+    ) external view returns (CollectionFeeOverride memory feeOverride) {
         return collectionFeeOverrides[collection];
     }
 
@@ -545,7 +633,9 @@ contract AdvancedFeeManager is Ownable, ReentrancyGuard, Pausable {
      * @param user Address of the user
      * @return volumeData User's volume tracking data
      */
-    function getUserVolumeData(address user) external view returns (UserVolumeData memory volumeData) {
+    function getUserVolumeData(
+        address user
+    ) external view returns (UserVolumeData memory volumeData) {
         return userVolumeData[user];
     }
 
@@ -554,7 +644,9 @@ contract AdvancedFeeManager is Ownable, ReentrancyGuard, Pausable {
      * @param user Address of the user
      * @return vipData User's VIP status data
      */
-    function getUserVIPStatus(address user) external view returns (VIPStatus memory vipData) {
+    function getUserVIPStatus(
+        address user
+    ) external view returns (VIPStatus memory vipData) {
         return vipStatus[user];
     }
 
@@ -563,7 +655,9 @@ contract AdvancedFeeManager is Ownable, ReentrancyGuard, Pausable {
      * @param tierId ID of the fee tier
      * @return tierConfig Fee tier configuration
      */
-    function getFeeTierConfig(uint256 tierId) external view returns (FeeTierConfig memory tierConfig) {
+    function getFeeTierConfig(
+        uint256 tierId
+    ) external view returns (FeeTierConfig memory tierConfig) {
         if (tierId >= feeTierConfigs.length) {
             revert Fee__InvalidRoyaltyFee();
         }
@@ -574,7 +668,11 @@ contract AdvancedFeeManager is Ownable, ReentrancyGuard, Pausable {
      * @notice Gets all fee tier configurations
      * @return tierConfigs Array of all fee tier configurations
      */
-    function getAllFeeTierConfigs() external view returns (FeeTierConfig[] memory tierConfigs) {
+    function getAllFeeTierConfigs()
+        external
+        view
+        returns (FeeTierConfig[] memory tierConfigs)
+    {
         return feeTierConfigs;
     }
 
@@ -593,18 +691,24 @@ contract AdvancedFeeManager is Ownable, ReentrancyGuard, Pausable {
      * @param isMaker Whether calculating for maker (true) or taker (false)
      * @return effectiveRate Effective fee rate in basis points
      */
-    function getEffectiveFeeRate(address user, address collection, bool isMaker)
-        external
-        view
-        returns (uint256 effectiveRate)
-    {
+    function getEffectiveFeeRate(
+        address user,
+        address collection,
+        bool isMaker
+    ) external view returns (uint256 effectiveRate) {
         // Get base fee rate
-        uint256 baseFeeRate = isMaker ? baseFeeConfig.makerFee : baseFeeConfig.takerFee;
+        uint256 baseFeeRate = isMaker
+            ? baseFeeConfig.makerFee
+            : baseFeeConfig.takerFee;
 
         // Apply collection override if exists
-        CollectionFeeOverride memory feeOverride = collectionFeeOverrides[collection];
+        CollectionFeeOverride memory feeOverride = collectionFeeOverrides[
+            collection
+        ];
         if (feeOverride.hasOverride) {
-            uint256 overrideRate = isMaker ? feeOverride.makerFeeOverride : feeOverride.takerFeeOverride;
+            uint256 overrideRate = isMaker
+                ? feeOverride.makerFeeOverride
+                : feeOverride.takerFeeOverride;
             if (overrideRate > 0) {
                 baseFeeRate = overrideRate;
             }
@@ -636,7 +740,9 @@ contract AdvancedFeeManager is Ownable, ReentrancyGuard, Pausable {
      * @return nextTierId ID of the next tier
      * @return volumeNeeded Additional volume needed for upgrade
      */
-    function checkTierUpgradeEligibility(address user)
+    function checkTierUpgradeEligibility(
+        address user
+    )
         external
         view
         returns (bool canUpgrade, uint256 nextTierId, uint256 volumeNeeded)
@@ -658,7 +764,11 @@ contract AdvancedFeeManager is Ownable, ReentrancyGuard, Pausable {
         if (userData.totalVolume >= nextTier.volumeThreshold) {
             return (true, currentTier.tierId + 1, 0);
         } else {
-            return (false, currentTier.tierId + 1, nextTier.volumeThreshold - userData.totalVolume);
+            return (
+                false,
+                currentTier.tierId + 1,
+                nextTier.volumeThreshold - userData.totalVolume
+            );
         }
     }
 }

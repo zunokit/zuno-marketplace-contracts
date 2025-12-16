@@ -3,15 +3,13 @@ pragma solidity ^0.8.30;
 
 import {Test, console2, Vm} from "forge-std/Test.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import {NFTExchangeFactory} from "src/core/factory/NFTExchangeFactory.sol";
 import {ERC721NFTExchange} from "src/core/exchange/ERC721NFTExchange.sol";
 import {ERC1155NFTExchange} from "src/core/exchange/ERC1155NFTExchange.sol";
-import {ERC721NFTExchange} from "src/core/exchange/ERC721NFTExchange.sol";
-import {ERC1155NFTExchange} from "src/core/exchange/ERC1155NFTExchange.sol";
-import {CollectionFactoryRegistry} from "src/core/factory/CollectionFactoryRegistry.sol";
 import {ERC721CollectionFactory} from "src/core/factory/ERC721CollectionFactory.sol";
 import {ERC1155CollectionFactory} from "src/core/factory/ERC1155CollectionFactory.sol";
 import {AuctionFactory} from "src/core/factory/AuctionFactory.sol";
+import {EnglishAuctionImplementation} from "src/core/proxy/EnglishAuctionImplementation.sol";
+import {DutchAuctionImplementation} from "src/core/proxy/DutchAuctionImplementation.sol";
 import {MarketplaceValidator} from "src/core/validation/MarketplaceValidator.sol";
 import {AdvancedFeeManager} from "src/core/fees/AdvancedFeeManager.sol";
 import {OfferManager} from "src/core/offers/OfferManager.sol";
@@ -26,10 +24,8 @@ import {CollectionParams} from "src/types/ListingTypes.sol";
  */
 contract EndToEndTest is Test {
     // Core contracts
-    NFTExchangeFactory public exchange;
     ERC721CollectionFactory public erc721CollectionFactory;
     ERC1155CollectionFactory public erc1155CollectionFactory;
-    CollectionFactoryRegistry public collectionFactory;
     AuctionFactory public auctionFactory;
     MarketplaceValidator public validator;
 
@@ -65,13 +61,7 @@ contract EndToEndTest is Test {
         user2 = makeAddr("user2");
         collectionCreator = makeAddr("collectionCreator");
 
-        vm.startPrank(owner);
-        exchange = new NFTExchangeFactory(marketplaceWallet);
-        address erc721Implementation = address(new ERC721NFTExchange());
-        address erc1155Implementation = address(new ERC1155NFTExchange());
-        exchange.setImplementation(NFTExchangeFactory.ExchangeType.ERC721, erc721Implementation);
-        exchange.setImplementation(NFTExchangeFactory.ExchangeType.ERC1155, erc1155Implementation);
-        vm.stopPrank();
+        // Exchanges will be created in _deployAllContracts
 
         // Fund accounts
         vm.deal(user1, 100 ether);
@@ -93,16 +83,21 @@ contract EndToEndTest is Test {
         // Deploy core contracts
         erc721CollectionFactory = new ERC721CollectionFactory();
         erc1155CollectionFactory = new ERC1155CollectionFactory();
-        collectionFactory =
-            new CollectionFactoryRegistry(address(erc721CollectionFactory), address(erc1155CollectionFactory));
 
-        auctionFactory = new AuctionFactory(marketplaceWallet);
+        EnglishAuctionImplementation englishImpl = new EnglishAuctionImplementation();
+        DutchAuctionImplementation dutchImpl = new DutchAuctionImplementation();
+        auctionFactory = new AuctionFactory(marketplaceWallet, address(englishImpl), address(dutchImpl));
         validator = new MarketplaceValidator();
 
-        // Deploy exchange contracts
+        // Deploy exchange contracts directly
         vm.startPrank(owner);
-        erc721Exchange = exchange.createExchange(NFTExchangeFactory.ExchangeType.ERC721);
-        erc1155Exchange = exchange.createExchange(NFTExchangeFactory.ExchangeType.ERC1155);
+        ERC721NFTExchange erc721 = new ERC721NFTExchange();
+        erc721.initialize(marketplaceWallet, owner);
+        erc721Exchange = address(erc721);
+
+        ERC1155NFTExchange erc1155 = new ERC1155NFTExchange();
+        erc1155.initialize(marketplaceWallet, owner);
+        erc1155Exchange = address(erc1155);
         vm.stopPrank();
 
         // Deploy advanced contracts
@@ -144,7 +139,7 @@ contract EndToEndTest is Test {
         });
 
         // Create ERC721 collection
-        testCollection = collectionFactory.createERC721Collection(params);
+        testCollection = erc721CollectionFactory.createERC721Collection(params);
         assertNotEq(testCollection, address(0));
 
         // Request verification for collection
@@ -416,7 +411,7 @@ contract EndToEndTest is Test {
         });
 
         vm.expectRevert(); // Collection__InvalidOwner or similar
-        collectionFactory.createERC721Collection(invalidParams);
+        erc721CollectionFactory.createERC721Collection(invalidParams);
 
         vm.stopPrank();
 

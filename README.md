@@ -11,7 +11,7 @@ A production-ready, modular NFT marketplace smart contract system built with Fou
 
 - **Multi-token Support**: ERC721 and ERC1155 collections with automatic standard detection
 - **Advanced Trading**: Direct sales, English/Dutch auctions, offers, and bundle trading
-- **Hub Architecture**: Single entry point (MarketplaceHub) for all frontend interactions
+- **Hub Architecture**: Dual hub pattern (AdminHub for admin operations, UserHub for frontend integration)
 - **Collection Management**: Factory pattern with proxy deployments for gas-efficient collection creation
 - **Fee System**: Configurable marketplace fees and EIP-2981 royalty support
 - **Access Control**: Role-based permissions, timelock protection, and emergency controls
@@ -25,47 +25,56 @@ A production-ready, modular NFT marketplace smart contract system built with Fou
 #### Core Contracts
 
 **Hub & Registries**
-- `MarketplaceHub` - Single entry point for frontend, provides address discovery
+
+- `AdminHub` - Admin operations and system management
+- `UserHub` - Frontend integration and address discovery
 - `ExchangeRegistry` - Maps token standards to exchange contracts
 - `CollectionRegistry` - Maps token types to factory contracts
 - `FeeRegistry` - Unified fee calculations across platform
 - `AuctionRegistry` - Maps auction types to implementation contracts
 
 **Exchange Layer**
+
 - `BaseNFTExchange` - Abstract base with common trading logic
 - `ERC721NFTExchange` / `ERC1155NFTExchange` - Token-specific implementations
 - `NFTExchangeFactory` - Creates exchange instances
 - `NFTExchangeRegistry` - Manages exchange instances
 
 **Collection System**
+
 - `ERC721Collection` / `ERC1155Collection` - NFT collection contracts
 - `ERC721CollectionFactory` / `ERC1155CollectionFactory` - Gas-efficient collection deployment
 - `ERC721CollectionImplementation` / `ERC1155CollectionImplementation` - Proxy implementations
 - `CollectionVerifier` - Collection verification and validation
 
 **Auction System**
+
 - `BaseAuction` - Common auction logic
 - `EnglishAuction` / `DutchAuction` - Auction type implementations
 - `EnglishAuctionImplementation` / `DutchAuctionImplementation` - Proxy implementations
 - `AuctionFactory` - Creates auction instances with minimal proxy pattern
 
 **Trading Features**
+
 - `AdvancedListingManager` - Orchestrates complex listing types
 - `OfferManager` - NFT and collection offer management
 - `BundleManager` - Multi-NFT bundle trading
 
 **Fee & Royalty Management**
+
 - `BaseFee` - Core fee calculations
 - `AdvancedFeeManager` - Marketplace fee configuration
 - `AdvancedRoyaltyManager` - EIP-2981 royalty distribution
 
 **Security & Access Control**
+
 - `MarketplaceAccessControl` - Role-based permissions (Admin, Operator, User)
 - `EmergencyManager` - Emergency pause/unpause functionality
 - `MarketplaceTimelock` - 48-hour delay for critical operations
 - `ListingValidator` - Input validation and sanity checks
 
 **Analytics & History**
+
 - `ListingHistoryTracker` - Transaction history and analytics
 
 ### Frontend
@@ -138,7 +147,7 @@ zuno-marketplace-contracts/
 │   │   ├── access/           # Role-based access control
 │   │   ├── analytics/        # History tracking & analytics
 │   │   └── validation/       # Input validation & verification
-│   ├── router/               # MarketplaceHub entry point
+│   ├── router/               # AdminHub and UserHub entry points
 │   ├── registry/             # Registry contracts for mappings
 │   ├── common/               # Base contracts & shared logic
 │   ├── libraries/            # Reusable utility libraries
@@ -251,7 +260,7 @@ make deploy-all-local    # Deploy to local network
 # Deploy EVERYTHING with one command (recommended)
 forge script script/deploy/DeployAll.s.sol --rpc-url $SEPOLIA_RPC_URL --broadcast --verify
 
-# Output shows MarketplaceHub address - that's the ONLY address frontend needs!
+# Output shows AdminHub and UserHub addresses - frontend needs UserHub, admin needs AdminHub!
 
 # Alternative: Deploy to mainnet
 forge script script/deploy/DeployAll.s.sol --rpc-url $MAINNET_RPC_URL --broadcast --verify
@@ -281,20 +290,20 @@ exchange.createListing(
 );
 ```
 
-### Frontend Integration (MarketplaceHub)
+### Frontend Integration (UserHub)
 
-The frontend only needs the `MarketplaceHub` address - everything else is discoverable through it.
+The frontend only needs the `UserHub` address - everything else is discoverable through it.
 
 ```typescript
 // config.ts
-export const MARKETPLACE_HUB = "0x..."; // ONLY address needed
+export const USER_HUB = "0x..."; // UserHub address from deployment
 
 // Initialize Hub
 import { ethers, Contract } from "ethers";
-import MarketplaceHubABI from "./abis/MarketplaceHub.json";
+import UserHubABI from "./abis/UserHub.json";
 
 const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
-const hub = new Contract(MARKETPLACE_HUB, MarketplaceHubABI, provider);
+const hub = new Contract(USER_HUB, UserHubABI, provider);
 
 // Get all contract addresses (cache these)
 const {
@@ -307,7 +316,7 @@ const {
   auctionFactory,
   feeRegistry,
   bundleManager,
-  offerManager
+  offerManager,
 } = await hub.getAllAddresses();
 
 // Auto-detect exchange for any NFT
@@ -319,7 +328,9 @@ await exchange.listNFT(nftAddress, tokenId, ethers.parseEther("1.0"), 86400);
 
 // Calculate fees before purchase
 const fees = await hub.calculateFees(nftAddress, tokenId, salePrice);
-console.log(`Total price: ${fees.totalPrice}, Platform fee: ${fees.platformFee}`);
+console.log(
+  `Total price: ${fees.totalPrice}, Platform fee: ${fees.platformFee}`
+);
 
 // Verify collection before interaction
 const { isValid, tokenType } = await hub.verifyCollection(collectionAddress);

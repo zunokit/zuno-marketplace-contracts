@@ -74,7 +74,7 @@ event NFTListed(bytes32 listingId, address nftContract, uint256 tokenId, address
 
 - `listingId` is generated as `keccak256(abi.encodePacked(contractAddress, tokenId, seller, block.timestamp))`.
 - Ownership and approval are validated prior to listing via `NFTValidationLib`.
-- Platform and royalty fees are calculated by the FeeRegistry (see registries section) or via `MarketplaceHub.calculateFees`.
+- Platform and royalty fees are calculated by the FeeRegistry (see registries section) or via `UserHub.calculateFees`.
 
 ---
 

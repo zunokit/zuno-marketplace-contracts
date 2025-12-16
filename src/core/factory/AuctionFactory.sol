@@ -85,11 +85,25 @@ contract AuctionFactory is Ownable, Pausable, ReentrancyGuard {
     /**
      * @notice Initializes the auction factory
      * @param _marketplaceWallet Address to receive marketplace fees
+     * @param _englishAuctionImpl Pre-deployed EnglishAuctionImplementation address
+     * @param _dutchAuctionImpl Pre-deployed DutchAuctionImplementation address
      */
-    constructor(address _marketplaceWallet) Ownable(msg.sender) {
+    constructor(
+        address _marketplaceWallet,
+        address _englishAuctionImpl,
+        address _dutchAuctionImpl
+    ) Ownable(msg.sender) {
         _validateMarketplaceWallet(_marketplaceWallet);
+        require(_englishAuctionImpl != address(0), "Invalid english auction impl");
+        require(_dutchAuctionImpl != address(0), "Invalid dutch auction impl");
+        
         marketplaceWallet = _marketplaceWallet;
-        _deployImplementations(_marketplaceWallet);
+        englishAuctionImplementation = _englishAuctionImpl;
+        dutchAuctionImplementation = _dutchAuctionImpl;
+
+        emit AuctionImplementationsDeployed(
+            _englishAuctionImpl, _dutchAuctionImpl, _marketplaceWallet
+        );
     }
 
     // ============================================================================
@@ -176,6 +190,173 @@ contract AuctionFactory is Ownable, Pausable, ReentrancyGuard {
     }
 
     // ============================================================================
+    // BATCH AUCTION CREATION FUNCTIONS
+    // ============================================================================
+
+    /// @notice Struct for batch English auction parameters
+    struct BatchEnglishParams {
+        address nftContract;
+        uint256 startPrice;
+        uint256 reservePrice;
+        uint256 duration;
+    }
+
+    /**
+     * @notice Creates multiple English auctions in a single transaction
+     * @param nftContract Address of the NFT contract (same for all)
+     * @param tokenIds Array of token IDs to auction
+     * @param amounts Array of amounts to auction (1 for ERC721)
+     * @param startPrice Starting price for all auctions
+     * @param reservePrice Reserve price for all auctions
+     * @param duration Auction duration in seconds for all auctions
+     * @return auctionIds Array of unique identifiers for the created auctions
+     */
+    function batchCreateEnglishAuction(
+        address nftContract,
+        uint256[] calldata tokenIds,
+        uint256[] calldata amounts,
+        uint256 startPrice,
+        uint256 reservePrice,
+        uint256 duration
+    ) external whenNotPaused nonReentrant returns (bytes32[] memory auctionIds) {
+        uint256 length = tokenIds.length;
+        require(length > 0, "Empty array");
+        require(length == amounts.length, "Array length mismatch");
+        require(length <= 20, "Max 20 auctions per batch");
+
+        // Validate all NFTs first
+        for (uint256 i = 0; i < length; i++) {
+            _validateNFTAvailability(nftContract, tokenIds[i], msg.sender);
+        }
+
+        BatchEnglishParams memory batchParams = BatchEnglishParams({
+            nftContract: nftContract,
+            startPrice: startPrice,
+            reservePrice: reservePrice,
+            duration: duration
+        });
+
+        auctionIds = _batchCreateEnglishInternal(batchParams, tokenIds, amounts);
+        return auctionIds;
+    }
+
+    /**
+     * @notice Internal function for batch English auction creation
+     */
+    function _batchCreateEnglishInternal(
+        BatchEnglishParams memory batchParams,
+        uint256[] calldata tokenIds,
+        uint256[] calldata amounts
+    ) internal returns (bytes32[] memory auctionIds) {
+        uint256 length = tokenIds.length;
+        auctionIds = new bytes32[](length);
+
+        for (uint256 i = 0; i < length; i++) {
+            AuctionCreationParams memory params = AuctionCreationParams({
+                nftContract: batchParams.nftContract,
+                tokenId: tokenIds[i],
+                amount: amounts[i],
+                startPrice: batchParams.startPrice,
+                reservePrice: batchParams.reservePrice,
+                duration: batchParams.duration,
+                auctionType: AuctionType.ENGLISH,
+                seller: msg.sender,
+                bidIncrement: 500,
+                extendOnBid: false
+            });
+
+            auctionIds[i] = _createEnglishAuctionInternal(params);
+        }
+
+        return auctionIds;
+    }
+
+    /// @notice Struct for batch Dutch auction parameters
+    struct BatchDutchParams {
+        address nftContract;
+        uint256 startPrice;
+        uint256 reservePrice;
+        uint256 duration;
+        uint256 priceDropPerHour;
+    }
+
+    /**
+     * @notice Creates multiple Dutch auctions in a single transaction
+     * @param nftContract Address of the NFT contract (same for all)
+     * @param tokenIds Array of token IDs to auction
+     * @param amounts Array of amounts to auction (1 for ERC721)
+     * @param startPrice Starting price for all auctions
+     * @param reservePrice Reserve price for all auctions
+     * @param duration Auction duration in seconds for all auctions
+     * @param priceDropPerHour Price drop percentage per hour (in basis points)
+     * @return auctionIds Array of unique identifiers for the created auctions
+     */
+    function batchCreateDutchAuction(
+        address nftContract,
+        uint256[] calldata tokenIds,
+        uint256[] calldata amounts,
+        uint256 startPrice,
+        uint256 reservePrice,
+        uint256 duration,
+        uint256 priceDropPerHour
+    ) external whenNotPaused nonReentrant returns (bytes32[] memory auctionIds) {
+        uint256 length = tokenIds.length;
+        require(length > 0, "Empty array");
+        require(length == amounts.length, "Array length mismatch");
+        require(length <= 20, "Max 20 auctions per batch");
+
+        // Validate all NFTs first
+        for (uint256 i = 0; i < length; i++) {
+            _validateNFTAvailability(nftContract, tokenIds[i], msg.sender);
+        }
+
+        BatchDutchParams memory batchParams = BatchDutchParams({
+            nftContract: nftContract,
+            startPrice: startPrice,
+            reservePrice: reservePrice,
+            duration: duration,
+            priceDropPerHour: priceDropPerHour
+        });
+
+        auctionIds = _batchCreateDutchInternal(batchParams, tokenIds, amounts);
+        return auctionIds;
+    }
+
+    /**
+     * @notice Internal function for batch Dutch auction creation
+     */
+    function _batchCreateDutchInternal(
+        BatchDutchParams memory batchParams,
+        uint256[] calldata tokenIds,
+        uint256[] calldata amounts
+    ) internal returns (bytes32[] memory auctionIds) {
+        uint256 length = tokenIds.length;
+        auctionIds = new bytes32[](length);
+
+        for (uint256 i = 0; i < length; i++) {
+            DutchAuctionParams memory params = DutchAuctionParams({
+                baseParams: AuctionCreationParams({
+                    nftContract: batchParams.nftContract,
+                    tokenId: tokenIds[i],
+                    amount: amounts[i],
+                    startPrice: batchParams.startPrice,
+                    reservePrice: batchParams.reservePrice,
+                    duration: batchParams.duration,
+                    auctionType: AuctionType.DUTCH,
+                    seller: msg.sender,
+                    bidIncrement: 0,
+                    extendOnBid: false
+                }),
+                priceDropPerHour: batchParams.priceDropPerHour
+            });
+
+            auctionIds[i] = _createDutchAuctionInternal(params);
+        }
+
+        return auctionIds;
+    }
+
+    // ============================================================================
     // AUCTION INTERACTION FUNCTIONS
     // ============================================================================
 
@@ -228,6 +409,47 @@ contract AuctionFactory is Ownable, Pausable, ReentrancyGuard {
 
         // Notify validator about auction cancellation
         _notifyValidatorAuctionCancelled(auction.nftContract, auction.tokenId, auction.seller);
+    }
+
+    /**
+     * @notice Cancels multiple auctions in a single transaction
+     * @param auctionIds Array of auction IDs to cancel
+     * @return cancelledCount Number of auctions successfully cancelled
+     * @dev Only auctions owned by msg.sender will be cancelled, others are skipped
+     */
+    function batchCancelAuction(bytes32[] calldata auctionIds) external nonReentrant whenNotPaused returns (uint256 cancelledCount) {
+        uint256 length = auctionIds.length;
+        require(length > 0, "Empty array");
+        require(length <= 20, "Max 20 cancellations per batch");
+
+        for (uint256 i = 0; i < length; i++) {
+            bytes32 auctionId = auctionIds[i];
+            address auctionContract = auctionToContract[auctionId];
+            
+            // Skip if auction doesn't exist
+            if (auctionContract == address(0)) {
+                continue;
+            }
+
+            // Get auction details
+            IAuction.Auction memory auction = IAuction(auctionContract).getAuction(auctionId);
+            
+            // Skip if not the seller
+            if (auction.seller != msg.sender) {
+                continue;
+            }
+
+            // Try to cancel, skip on failure (e.g., auction already ended)
+            try IAuction(auctionContract).cancelAuctionFor(auctionId, msg.sender) {
+                _notifyValidatorAuctionCancelled(auction.nftContract, auction.tokenId, auction.seller);
+                cancelledCount++;
+            } catch {
+                // Skip failed cancellations
+                continue;
+            }
+        }
+
+        return cancelledCount;
     }
 
     /**
@@ -589,18 +811,7 @@ contract AuctionFactory is Ownable, Pausable, ReentrancyGuard {
         }
     }
 
-    /**
-     * @notice Deploys implementation contracts
-     * @param _marketplaceWallet Address to receive marketplace fees
-     */
-    function _deployImplementations(address _marketplaceWallet) internal {
-        englishAuctionImplementation = address(new EnglishAuctionImplementation());
-        dutchAuctionImplementation = address(new DutchAuctionImplementation());
 
-        emit AuctionImplementationsDeployed(
-            englishAuctionImplementation, dutchAuctionImplementation, _marketplaceWallet
-        );
-    }
 
     /**
      * @notice Validates NFT availability for auction (not already listed)

@@ -25,6 +25,7 @@ contract BaseCollection is Ownable {
     uint256 public s_allowlistStageEnd; // End time for allowlist stage
     mapping(address => bool) public s_allowlist; // Allowlist
     uint256 public s_tokenIdCounter;
+    bool public s_allowlistOnly; // If true, only allowlisted addresses can mint (no public stage)
 
     constructor(CollectionParams memory params) Ownable(params.owner) {
         s_description = params.description;
@@ -65,6 +66,38 @@ contract BaseCollection is Ownable {
         }
     }
 
+    /**
+     * @notice Removes addresses from the allowlist
+     * @param addresses Array of addresses to remove from allowlist
+     */
+    function removeFromAllowlist(address[] calldata addresses) external onlyOwner {
+        uint256 length = addresses.length;
+        if (length == 0) revert Collection__InvalidAmount();
+        if (length > MAX_ALLOWLIST_BATCH_SIZE) {
+            revert Collection__MintLimitExceeded();
+        }
+
+        for (uint256 i = 0; i < length; i++) {
+            s_allowlist[addresses[i]] = false;
+        }
+    }
+
+    /**
+     * @notice Sets allowlist-only mode (disables public minting)
+     * @param allowlistOnly If true, only allowlisted addresses can ever mint
+     */
+    function setAllowlistOnly(bool allowlistOnly) external onlyOwner {
+        s_allowlistOnly = allowlistOnly;
+    }
+
+    /**
+     * @notice Updates the allowlist stage end time
+     * @param newEndTime New end time for allowlist stage
+     */
+    function setAllowlistStageEnd(uint256 newEndTime) external onlyOwner {
+        s_allowlistStageEnd = newEndTime;
+    }
+
     // Update mint stage (can be called manually or automatically)
     function updateMintStage() public {
         MintStage newStage = _calculateCurrentStage();
@@ -78,7 +111,8 @@ contract BaseCollection is Ownable {
     function _calculateCurrentStage() internal view returns (MintStage) {
         if (block.timestamp < s_mintStartTime) {
             return MintStage.INACTIVE;
-        } else if (block.timestamp < s_allowlistStageEnd) {
+        } else if (block.timestamp < s_allowlistStageEnd || s_allowlistOnly) {
+            // If allowlistOnly is true, never go to PUBLIC stage
             return MintStage.ALLOWLIST;
         } else {
             return MintStage.PUBLIC;
@@ -184,6 +218,10 @@ contract BaseCollection is Ownable {
         return s_allowlist[account];
     }
 
+    function isAllowlistOnly() external view returns (bool) {
+        return s_allowlistOnly;
+    }
+
     function getMintedPerWallet(address account) external view returns (uint256) {
         return s_mintedPerWallet[account];
     }
@@ -227,5 +265,6 @@ contract BaseCollection is Ownable {
         mintedPerWallet = s_mintedPerWallet[account];
         mintLimitPerWallet = s_mintLimitPerWallet;
         accountInAllowlist = s_allowlist[account];
+        // Note: Use isAllowlistOnly() to check allowlistOnly status separately
     }
 }

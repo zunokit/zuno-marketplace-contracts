@@ -38,7 +38,8 @@ contract BaseNFTExchange is Initializable, Ownable, ReentrancyGuard, ERC165, IEx
         Active,
         Sold,
         Failed,
-        Cancelled
+        Cancelled,
+        Expired
     }
 
     // Constants
@@ -214,15 +215,40 @@ contract BaseNFTExchange is Initializable, Ownable, ReentrancyGuard, ERC165, IEx
         PaymentDistributionLib.distributePayment(paymentData);
     }
 
+    // Internal function to distribute payments and emit event
+    function _distributePaymentsWithEvent(
+        bytes32 listingId,
+        PaymentDistribution memory payment
+    ) internal {
+        // Calculate seller amount (listing price minus royalty)
+        uint256 sellerAmount = payment.price - payment.royalty;
+        uint256 totalPrice = payment.price + payment.takerFee;
+
+        // Distribute payments
+        _distributePayments(payment);
+
+        // Emit detailed payment distribution event
+        emit PaymentDistributed(
+            listingId,
+            payment.seller,
+            msg.sender,
+            totalPrice,
+            sellerAmount,
+            payment.takerFee,
+            payment.royalty,
+            payment.royaltyReceiver
+        );
+    }
+
     // Internal function to finalize listing
     function _finalizeListing(bytes32 m_listingId, address m_contractAddress, address m_seller) internal {
         // Update listing status
         s_listings[m_listingId].status = ListingStatus.Sold;
 
+        uint256 tokenId = s_listings[m_listingId].tokenId;
+
         // Remove from active listings
-        delete s_activeListings[m_contractAddress][
-            s_listings[m_listingId].tokenId
-        ][m_seller];
+        delete s_activeListings[m_contractAddress][tokenId][m_seller];
 
         // Remove from collection and seller listings
         _removeListingFromArray(s_listingsByCollection[m_contractAddress], m_listingId);
@@ -232,7 +258,7 @@ contract BaseNFTExchange is Initializable, Ownable, ReentrancyGuard, ERC165, IEx
         emit NFTSold(
             m_listingId,
             m_contractAddress,
-            s_listings[m_listingId].tokenId,
+            tokenId,
             m_seller,
             msg.sender,
             s_listings[m_listingId].price
@@ -376,5 +402,284 @@ contract BaseNFTExchange is Initializable, Ownable, ReentrancyGuard, ERC165, IEx
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
         return interfaceId == type(IERC165).interfaceId || interfaceId == type(IExchangeCore).interfaceId
             || super.supportsInterface(interfaceId);
+    }
+
+    // ============================================================================
+    // GETTER FUNCTIONS FOR CLI/FRONTEND INTEGRATION
+    // ============================================================================
+
+    /**
+     * @notice Get active listing ID for a specific NFT
+     * @dev Returns zero bytes32 if no active listing exists
+     * @param nftContract NFT contract address
+     * @param tokenId Token ID
+     * @param seller Seller address
+     * @return listingId The listing ID if active, zero bytes32 otherwise
+     */
+    function getActiveListingByNFT(address nftContract, uint256 tokenId, address seller)
+        external
+        view
+        returns (bytes32 listingId)
+    {
+        listingId = s_activeListings[nftContract][tokenId][seller];
+
+        // Validate it's truly active and not expired
+        if (listingId != bytes32(0)) {
+            Listing storage listing = s_listings[listingId];
+            if (
+                listing.status != ListingStatus.Active
+                    || block.timestamp >= listing.listingStart + listing.listingDuration
+            ) {
+                return bytes32(0);
+            }
+        }
+
+        return listingId;
+    }
+
+    /**
+     * @notice Get all active listings by seller
+     * @param seller Seller address
+     * @return activeListings Array of active listing IDs
+     */
+    function getActiveListingsBySeller(address seller) external view returns (bytes32[] memory activeListings) {
+        bytes32[] memory allListings = s_listingsBySeller[seller];
+        uint256 activeCount = 0;
+
+        // First pass: count active listings
+        for (uint256 i = 0; i < allListings.length; i++) {
+            Listing storage listing = s_listings[allListings[i]];
+            if (
+                listing.status == ListingStatus.Active
+                    && block.timestamp < listing.listingStart + listing.listingDuration
+            ) {
+                activeCount++;
+            }
+        }
+
+        // Second pass: populate array
+        activeListings = new bytes32[](activeCount);
+        uint256 currentIndex = 0;
+        for (uint256 i = 0; i < allListings.length; i++) {
+            Listing storage listing = s_listings[allListings[i]];
+            if (
+                listing.status == ListingStatus.Active
+                    && block.timestamp < listing.listingStart + listing.listingDuration
+            ) {
+                activeListings[currentIndex] = allListings[i];
+                currentIndex++;
+            }
+        }
+
+        return activeListings;
+    }
+
+    /**
+     * @notice Check if NFT is currently listed
+     * @param nftContract NFT contract address
+     * @param tokenId Token ID
+     * @return isListed True if actively listed by anyone
+     * @return listingId The listing ID if listed, zero bytes32 otherwise
+     * @return seller The seller address if listed
+     */
+    function isNFTListed(address nftContract, uint256 tokenId)
+        external
+        view
+        returns (bool isListed, bytes32 listingId, address seller)
+    {
+        // Check all collection listings for this NFT
+        bytes32[] memory collectionListings = s_listingsByCollection[nftContract];
+
+        for (uint256 i = 0; i < collectionListings.length; i++) {
+            Listing storage listing = s_listings[collectionListings[i]];
+
+            if (
+                listing.tokenId == tokenId && listing.status == ListingStatus.Active
+                    && block.timestamp < listing.listingStart + listing.listingDuration
+            ) {
+                return (true, collectionListings[i], listing.seller);
+            }
+        }
+
+        return (false, bytes32(0), address(0));
+    }
+
+    /**
+     * @notice Get total active listings count for a collection
+     * @param nftContract NFT contract address
+     * @return count Number of active listings
+     */
+    function getActiveListingsCount(address nftContract) external view returns (uint256 count) {
+        bytes32[] memory collectionListings = s_listingsByCollection[nftContract];
+
+        for (uint256 i = 0; i < collectionListings.length; i++) {
+            Listing storage listing = s_listings[collectionListings[i]];
+            if (
+                listing.status == ListingStatus.Active
+                    && block.timestamp < listing.listingStart + listing.listingDuration
+            ) {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    /**
+     * @notice Batch check if multiple NFTs are listed
+     * @param nftContracts Array of NFT contract addresses
+     * @param tokenIds Array of token IDs
+     * @return listed Array of boolean values indicating if each NFT is listed
+     */
+    function batchIsNFTListed(address[] calldata nftContracts, uint256[] calldata tokenIds)
+        external
+        view
+        returns (bool[] memory listed)
+    {
+        require(nftContracts.length == tokenIds.length, "Array length mismatch");
+
+        listed = new bool[](nftContracts.length);
+
+        for (uint256 i = 0; i < nftContracts.length; i++) {
+            bytes32 listingId = s_activeListings[nftContracts[i]][tokenIds[i]][msg.sender];
+
+            if (listingId != bytes32(0)) {
+                Listing storage listing = s_listings[listingId];
+                listed[i] = listing.status == ListingStatus.Active
+                    && block.timestamp < listing.listingStart + listing.listingDuration;
+            } else {
+                listed[i] = false;
+            }
+        }
+
+        return listed;
+    }
+
+    // ============================================================================
+    // EXPIRED LISTING CLEANUP FUNCTIONS
+    // ============================================================================
+
+    /**
+     * @notice Check if a listing has expired based on time
+     * @param listingId The listing ID to check
+     * @return isExpired True if the listing duration has passed
+     */
+    function isListingExpired(bytes32 listingId) public view returns (bool isExpired) {
+        Listing storage listing = s_listings[listingId];
+        if (listing.status != ListingStatus.Active) {
+            return false;
+        }
+        return block.timestamp >= listing.listingStart + listing.listingDuration;
+    }
+
+    /**
+     * @notice Cleanup a single expired listing by updating its status
+     * @dev Anyone can call this to help maintain contract state
+     * @param listingId The listing ID to cleanup
+     * @return cleaned True if the listing was cleaned up
+     */
+    function cleanupExpiredListing(bytes32 listingId) public returns (bool cleaned) {
+        Listing storage listing = s_listings[listingId];
+
+        // Only cleanup active listings that have expired
+        if (listing.status != ListingStatus.Active) {
+            return false;
+        }
+
+        uint256 expirationTime = listing.listingStart + listing.listingDuration;
+        if (block.timestamp < expirationTime) {
+            return false;
+        }
+
+        // Update status to Expired
+        listing.status = ListingStatus.Expired;
+
+        // Remove from arrays
+        _removeListingFromArray(s_listingsByCollection[listing.contractAddress], listingId);
+        _removeListingFromArray(s_listingsBySeller[listing.seller], listingId);
+
+        // Remove from active listings mapping
+        delete s_activeListings[listing.contractAddress][listing.tokenId][listing.seller];
+
+        // Emit event
+        emit ListingExpired(
+            listingId,
+            listing.contractAddress,
+            listing.tokenId,
+            listing.seller,
+            expirationTime
+        );
+
+        return true;
+    }
+
+    /**
+     * @notice Batch cleanup multiple expired listings
+     * @dev Anyone can call this to help maintain contract state
+     * @param listingIds Array of listing IDs to cleanup
+     * @return cleanedCount Number of listings that were cleaned up
+     */
+    function batchCleanupExpiredListings(bytes32[] calldata listingIds) external returns (uint256 cleanedCount) {
+        for (uint256 i = 0; i < listingIds.length; i++) {
+            if (cleanupExpiredListing(listingIds[i])) {
+                cleanedCount++;
+            }
+        }
+        return cleanedCount;
+    }
+
+    /**
+     * @notice Get expired listing IDs for a seller (for cleanup purposes)
+     * @param seller Seller address
+     * @return expiredListings Array of expired listing IDs
+     */
+    function getExpiredListingsBySeller(address seller) external view returns (bytes32[] memory expiredListings) {
+        bytes32[] memory allListings = s_listingsBySeller[seller];
+        uint256 expiredCount = 0;
+
+        // First pass: count expired listings
+        for (uint256 i = 0; i < allListings.length; i++) {
+            Listing storage listing = s_listings[allListings[i]];
+            if (
+                listing.status == ListingStatus.Active
+                    && block.timestamp >= listing.listingStart + listing.listingDuration
+            ) {
+                expiredCount++;
+            }
+        }
+
+        // Second pass: populate array
+        expiredListings = new bytes32[](expiredCount);
+        uint256 currentIndex = 0;
+        for (uint256 i = 0; i < allListings.length; i++) {
+            Listing storage listing = s_listings[allListings[i]];
+            if (
+                listing.status == ListingStatus.Active
+                    && block.timestamp >= listing.listingStart + listing.listingDuration
+            ) {
+                expiredListings[currentIndex] = allListings[i];
+                currentIndex++;
+            }
+        }
+
+        return expiredListings;
+    }
+
+    /**
+     * @notice Get the real status of a listing (accounts for time-based expiration)
+     * @param listingId The listing ID to check
+     * @return status The real status (Expired if time has passed even if stored as Active)
+     */
+    function getRealListingStatus(bytes32 listingId) external view returns (ListingStatus status) {
+        Listing storage listing = s_listings[listingId];
+
+        // If stored status is Active but time has expired, return Expired
+        if (listing.status == ListingStatus.Active) {
+            if (block.timestamp >= listing.listingStart + listing.listingDuration) {
+                return ListingStatus.Expired;
+            }
+        }
+
+        return listing.status;
     }
 }

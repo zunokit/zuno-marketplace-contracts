@@ -1,4 +1,4 @@
-.PHONY: help build test clean start-anvil deploy-all-local format snapshot coverage
+.PHONY: help build test clean anvil anvil-clean deploy-all-local format snapshot coverage
 
 LOCAL_RPC := http://localhost:8545
 
@@ -16,7 +16,8 @@ help:
 	@echo "  make clean              - Clean build artifacts"
 	@echo ""
 	@echo "Local Development:"
-	@echo "  make start-anvil        - Start local Anvil blockchain (port 8545)"
+	@echo "  make anvil              - Start Anvil with persistent state (port 8545)"
+	@echo "  make anvil-clean        - Start Anvil with fresh state (no persistence)"
 	@echo "  make deploy-all-local   - Deploy all contracts to local network"
 	@echo ""
 
@@ -60,9 +61,15 @@ format:
 clean:
 	forge clean
 
-# Start local Anvil blockchain
+# Start local Anvil blockchain with persistent state
 anvil:
-	anvil --prune-history --port 8545
+	@echo Starting Anvil with persistent state...
+	@if exist state.json (anvil --port 8545 --load-state state.json --dump-state state.json) else (anvil --port 8545 --dump-state state.json)
+
+# Start Anvil with fresh state (no persistence)
+anvil-clean:
+	@if exist state.json del state.json
+	anvil --port 8545
 
 # Deploy all contracts to local network
 deploy-all-local:

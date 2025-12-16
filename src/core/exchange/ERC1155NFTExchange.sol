@@ -172,7 +172,7 @@ contract ERC1155NFTExchange is BaseNFTExchange {
             realityPrice: m_realityPrice
         });
 
-        _distributePayments(payment);
+        _distributePaymentsWithEvent(m_listingId, payment);
 
         // Update listing amount
         s_listing.amount -= m_purchaseAmount;
@@ -274,7 +274,7 @@ contract ERC1155NFTExchange is BaseNFTExchange {
             realityPrice: data.realityPrice
         });
 
-        _distributePayments(payment);
+        _distributePaymentsWithEvent(listingId, payment);
 
         // Finalize listing
         _finalizeListing(listingId, listing.contractAddress, listing.seller);
