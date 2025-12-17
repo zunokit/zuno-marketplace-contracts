@@ -85,11 +85,7 @@ event PaymentDistributed(
  * @param timestamp When the update occurred
  */
 event ListingPriceUpdated(
-    bytes32 indexed listingId,
-    address indexed seller,
-    uint256 oldPrice,
-    uint256 newPrice,
-    uint256 timestamp
+    bytes32 indexed listingId, address indexed seller, uint256 oldPrice, uint256 newPrice, uint256 timestamp
 );
 
 // ============================================================================

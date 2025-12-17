@@ -2,11 +2,12 @@
 pragma solidity ^0.8.30;
 
 import {CollectionParams} from "src/types/ListingTypes.sol";
-import {ERC721CollectionCreated} from "src/events/CollectionEvents.sol";
+import {ERC721CollectionCreated, ERC721CollectionCreatedWithAllowlist} from "src/events/CollectionEvents.sol";
 import {ICollectionFactory} from "src/interfaces/IMarketplaceCore.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
 import {ERC721CollectionImplementation} from "src/core/proxy/ERC721CollectionImplementation.sol";
+import {BaseCollection} from "src/common/BaseCollection.sol";
 import "@openzeppelin/contracts/proxy/Clones.sol";
 
 /**
@@ -40,6 +41,34 @@ contract ERC721CollectionFactory is ERC165, ICollectionFactory {
      */
     function createERC721Collection(CollectionParams memory params) external returns (address) {
         return _createCollectionInternal(params);
+    }
+
+    /**
+     * @notice Creates a new ERC721 collection with allowlist setup in a single transaction
+     * @param params Collection parameters
+     * @param allowlistAddresses Array of addresses to add to allowlist
+     * @param enableAllowlistOnly If true, only allowlisted addresses can ever mint
+     * @return The address of the created collection
+     * @dev This reduces MetaMask confirmations from 3 to 1 when creating a collection with allowlist
+     */
+    function createCollectionWithAllowlist(
+        CollectionParams memory params,
+        address[] calldata allowlistAddresses,
+        bool enableAllowlistOnly
+    ) external returns (address) {
+        // Create collection
+        address collectionAddr = _createCollectionInternal(params);
+
+        // Setup allowlist if addresses provided or mode needs to be set
+        if (allowlistAddresses.length > 0 || enableAllowlistOnly) {
+            BaseCollection(collectionAddr).setupAllowlist(allowlistAddresses, enableAllowlistOnly);
+        }
+
+        emit ERC721CollectionCreatedWithAllowlist(
+            collectionAddr, msg.sender, allowlistAddresses.length, enableAllowlistOnly
+        );
+
+        return collectionAddr;
     }
 
     /**

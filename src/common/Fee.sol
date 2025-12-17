@@ -21,13 +21,7 @@ contract Fee is Ownable, ERC165, IERC2981 {
         if (newRoyaltyFee > MAX_ROYALTY_FEE) revert Fee__InvalidRoyaltyFee();
         uint256 oldRoyaltyFee = s_royaltyFee;
         s_royaltyFee = newRoyaltyFee;
-        emit FeeUpdated(
-            "royaltyFee",
-            oldRoyaltyFee,
-            newRoyaltyFee,
-            msg.sender,
-            block.timestamp
-        );
+        emit FeeUpdated("royaltyFee", oldRoyaltyFee, newRoyaltyFee, msg.sender, block.timestamp);
     }
 
     // Getter for royaltyFee
@@ -36,19 +30,17 @@ contract Fee is Ownable, ERC165, IERC2981 {
     }
 
     // Support royalty via EIP-2981
-    function royaltyInfo(
-        uint256,
-        uint256 salePrice
-    ) external view override returns (address receiver, uint256 royaltyAmount) {
+    function royaltyInfo(uint256, uint256 salePrice)
+        external
+        view
+        override
+        returns (address receiver, uint256 royaltyAmount)
+    {
         return (owner(), (salePrice * s_royaltyFee) / 10000);
     }
 
     // ERC165 interface support
-    function supportsInterface(
-        bytes4 interfaceId
-    ) public view virtual override(ERC165, IERC165) returns (bool) {
-        return
-            interfaceId == type(IERC2981).interfaceId ||
-            super.supportsInterface(interfaceId);
+    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165, IERC165) returns (bool) {
+        return interfaceId == type(IERC2981).interfaceId || super.supportsInterface(interfaceId);
     }
 }

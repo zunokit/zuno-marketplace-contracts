@@ -31,11 +31,7 @@ contract BatchAuctionCreationTest is Test {
         dutchImpl = new DutchAuctionImplementation();
 
         // Deploy factory
-        auctionFactory = new AuctionFactory(
-            marketplaceWallet,
-            address(englishImpl),
-            address(dutchImpl)
-        );
+        auctionFactory = new AuctionFactory(marketplaceWallet, address(englishImpl), address(dutchImpl));
 
         // Deploy mock NFTs
         mockERC721 = new MockERC721("Test NFT", "TNFT");
@@ -73,12 +69,7 @@ contract BatchAuctionCreationTest is Test {
 
         vm.prank(alice);
         bytes32[] memory auctionIds = auctionFactory.batchCreateEnglishAuction(
-            address(mockERC721),
-            tokenIds,
-            amounts,
-            START_PRICE,
-            RESERVE_PRICE,
-            DURATION
+            address(mockERC721), tokenIds, amounts, START_PRICE, RESERVE_PRICE, DURATION
         );
 
         assertEq(auctionIds.length, 3, "Should create 3 auctions");
@@ -107,12 +98,7 @@ contract BatchAuctionCreationTest is Test {
 
         vm.prank(alice);
         bytes32[] memory auctionIds = auctionFactory.batchCreateEnglishAuction(
-            address(mockERC721),
-            tokenIds,
-            amounts,
-            START_PRICE,
-            RESERVE_PRICE,
-            DURATION
+            address(mockERC721), tokenIds, amounts, START_PRICE, RESERVE_PRICE, DURATION
         );
 
         assertEq(auctionIds.length, 1, "Should create 1 auction");
@@ -125,12 +111,7 @@ contract BatchAuctionCreationTest is Test {
         vm.prank(alice);
         vm.expectRevert("Empty array");
         auctionFactory.batchCreateEnglishAuction(
-            address(mockERC721),
-            tokenIds,
-            amounts,
-            START_PRICE,
-            RESERVE_PRICE,
-            DURATION
+            address(mockERC721), tokenIds, amounts, START_PRICE, RESERVE_PRICE, DURATION
         );
     }
 
@@ -147,12 +128,7 @@ contract BatchAuctionCreationTest is Test {
         vm.prank(alice);
         vm.expectRevert("Array length mismatch");
         auctionFactory.batchCreateEnglishAuction(
-            address(mockERC721),
-            tokenIds,
-            amounts,
-            START_PRICE,
-            RESERVE_PRICE,
-            DURATION
+            address(mockERC721), tokenIds, amounts, START_PRICE, RESERVE_PRICE, DURATION
         );
     }
 
@@ -167,12 +143,7 @@ contract BatchAuctionCreationTest is Test {
         vm.prank(alice);
         vm.expectRevert("Max 20 auctions per batch");
         auctionFactory.batchCreateEnglishAuction(
-            address(mockERC721),
-            tokenIds,
-            amounts,
-            START_PRICE,
-            RESERVE_PRICE,
-            DURATION
+            address(mockERC721), tokenIds, amounts, START_PRICE, RESERVE_PRICE, DURATION
         );
     }
 
@@ -190,12 +161,7 @@ contract BatchAuctionCreationTest is Test {
         vm.prank(alice);
         vm.expectRevert();
         auctionFactory.batchCreateEnglishAuction(
-            address(mockERC721),
-            tokenIds,
-            amounts,
-            START_PRICE,
-            RESERVE_PRICE,
-            DURATION
+            address(mockERC721), tokenIds, amounts, START_PRICE, RESERVE_PRICE, DURATION
         );
     }
 
@@ -216,13 +182,7 @@ contract BatchAuctionCreationTest is Test {
 
         vm.prank(alice);
         bytes32[] memory auctionIds = auctionFactory.batchCreateDutchAuction(
-            address(mockERC721),
-            tokenIds,
-            amounts,
-            START_PRICE,
-            RESERVE_PRICE,
-            DURATION,
-            PRICE_DROP_PER_HOUR
+            address(mockERC721), tokenIds, amounts, START_PRICE, RESERVE_PRICE, DURATION, PRICE_DROP_PER_HOUR
         );
 
         assertEq(auctionIds.length, 3, "Should create 3 auctions");
@@ -245,13 +205,7 @@ contract BatchAuctionCreationTest is Test {
         vm.prank(alice);
         vm.expectRevert("Empty array");
         auctionFactory.batchCreateDutchAuction(
-            address(mockERC721),
-            tokenIds,
-            amounts,
-            START_PRICE,
-            RESERVE_PRICE,
-            DURATION,
-            PRICE_DROP_PER_HOUR
+            address(mockERC721), tokenIds, amounts, START_PRICE, RESERVE_PRICE, DURATION, PRICE_DROP_PER_HOUR
         );
     }
 
@@ -268,13 +222,7 @@ contract BatchAuctionCreationTest is Test {
         vm.prank(alice);
         vm.expectRevert("Array length mismatch");
         auctionFactory.batchCreateDutchAuction(
-            address(mockERC721),
-            tokenIds,
-            amounts,
-            START_PRICE,
-            RESERVE_PRICE,
-            DURATION,
-            PRICE_DROP_PER_HOUR
+            address(mockERC721), tokenIds, amounts, START_PRICE, RESERVE_PRICE, DURATION, PRICE_DROP_PER_HOUR
         );
     }
 
@@ -289,13 +237,7 @@ contract BatchAuctionCreationTest is Test {
         vm.prank(alice);
         vm.expectRevert("Max 20 auctions per batch");
         auctionFactory.batchCreateDutchAuction(
-            address(mockERC721),
-            tokenIds,
-            amounts,
-            START_PRICE,
-            RESERVE_PRICE,
-            DURATION,
-            PRICE_DROP_PER_HOUR
+            address(mockERC721), tokenIds, amounts, START_PRICE, RESERVE_PRICE, DURATION, PRICE_DROP_PER_HOUR
         );
     }
 
@@ -314,12 +256,7 @@ contract BatchAuctionCreationTest is Test {
 
         vm.prank(alice);
         bytes32[] memory auctionIds = auctionFactory.batchCreateEnglishAuction(
-            address(mockERC1155),
-            tokenIds,
-            amounts,
-            START_PRICE,
-            RESERVE_PRICE,
-            DURATION
+            address(mockERC1155), tokenIds, amounts, START_PRICE, RESERVE_PRICE, DURATION
         );
 
         assertEq(auctionIds.length, 2, "Should create 2 auctions");
@@ -353,12 +290,7 @@ contract BatchAuctionCreationTest is Test {
 
         vm.prank(alice);
         bytes32[] memory auctionIds = auctionFactory.batchCreateEnglishAuction(
-            address(mockERC721),
-            tokenIds,
-            amounts,
-            START_PRICE,
-            RESERVE_PRICE,
-            DURATION
+            address(mockERC721), tokenIds, amounts, START_PRICE, RESERVE_PRICE, DURATION
         );
 
         assertEq(auctionIds.length, 3, "Should create 3 auctions");
@@ -387,12 +319,7 @@ contract BatchAuctionCreationTest is Test {
 
         vm.prank(alice);
         bytes32[] memory aliceAuctions = auctionFactory.batchCreateEnglishAuction(
-            address(mockERC721),
-            tokenIds,
-            amounts,
-            START_PRICE,
-            RESERVE_PRICE,
-            DURATION
+            address(mockERC721), tokenIds, amounts, START_PRICE, RESERVE_PRICE, DURATION
         );
 
         // Bob tries to cancel Alice's auctions
@@ -425,19 +352,13 @@ contract BatchAuctionCreationTest is Test {
     function test_BatchCancelAuction_SkipsNonExistent() public {
         // Create 1 real auction
         vm.prank(alice);
-        bytes32 realAuctionId = auctionFactory.createEnglishAuction(
-            address(mockERC721),
-            1,
-            1,
-            START_PRICE,
-            RESERVE_PRICE,
-            DURATION
-        );
+        bytes32 realAuctionId =
+            auctionFactory.createEnglishAuction(address(mockERC721), 1, 1, START_PRICE, RESERVE_PRICE, DURATION);
 
         // Mix real and fake auction IDs
         bytes32[] memory mixedIds = new bytes32[](3);
         mixedIds[0] = bytes32(uint256(999)); // Non-existent
-        mixedIds[1] = realAuctionId;          // Real
+        mixedIds[1] = realAuctionId; // Real
         mixedIds[2] = bytes32(uint256(888)); // Non-existent
 
         vm.prank(alice);
@@ -450,22 +371,10 @@ contract BatchAuctionCreationTest is Test {
     function test_BatchCancelAuction_PartialSuccess() public {
         // Alice creates 2 auctions
         vm.startPrank(alice);
-        bytes32 auction1 = auctionFactory.createEnglishAuction(
-            address(mockERC721),
-            1,
-            1,
-            START_PRICE,
-            RESERVE_PRICE,
-            DURATION
-        );
-        bytes32 auction2 = auctionFactory.createEnglishAuction(
-            address(mockERC721),
-            2,
-            1,
-            START_PRICE,
-            RESERVE_PRICE,
-            DURATION
-        );
+        bytes32 auction1 =
+            auctionFactory.createEnglishAuction(address(mockERC721), 1, 1, START_PRICE, RESERVE_PRICE, DURATION);
+        bytes32 auction2 =
+            auctionFactory.createEnglishAuction(address(mockERC721), 2, 1, START_PRICE, RESERVE_PRICE, DURATION);
         vm.stopPrank();
 
         // Bob places a bid on auction1 (can't be cancelled after bid in some implementations)
@@ -495,12 +404,7 @@ contract BatchAuctionCreationTest is Test {
         vm.prank(alice);
         uint256 gasBefore = gasleft();
         auctionFactory.batchCreateEnglishAuction(
-            address(mockERC721),
-            tokenIds,
-            amounts,
-            START_PRICE,
-            RESERVE_PRICE,
-            DURATION
+            address(mockERC721), tokenIds, amounts, START_PRICE, RESERVE_PRICE, DURATION
         );
         uint256 batchGas = gasBefore - gasleft();
 
@@ -511,14 +415,7 @@ contract BatchAuctionCreationTest is Test {
         vm.startPrank(alice);
         gasBefore = gasleft();
         for (uint256 i = 0; i < 5; i++) {
-            auctionFactory.createEnglishAuction(
-                address(mockERC721),
-                i + 1,
-                1,
-                START_PRICE,
-                RESERVE_PRICE,
-                DURATION
-            );
+            auctionFactory.createEnglishAuction(address(mockERC721), i + 1, 1, START_PRICE, RESERVE_PRICE, DURATION);
         }
         uint256 individualGas = gasBefore - gasleft();
         vm.stopPrank();
@@ -526,13 +423,13 @@ contract BatchAuctionCreationTest is Test {
         // Log gas comparison (main benefit is 1 tx vs N txs, not gas savings)
         emit log_named_uint("Batch gas (5 auctions)", batchGas);
         emit log_named_uint("Individual gas (5 auctions)", individualGas);
-        
+
         if (individualGas > batchGas) {
             emit log_named_uint("Gas saved", individualGas - batchGas);
         } else {
             emit log_named_uint("Gas overhead", batchGas - individualGas);
         }
-        
+
         // Main benefit: 1 transaction confirmation instead of 5
         assertTrue(true, "Batch reduces tx confirmations from N to 1");
     }

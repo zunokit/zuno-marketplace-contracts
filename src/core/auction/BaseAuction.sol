@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.30;
 
+import {Constants} from "src/common/Constants.sol";
+
 import {IAuction} from "src/interfaces/IAuction.sol";
 import {IMarketplaceValidator} from "src/interfaces/IMarketplaceValidator.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
@@ -304,7 +306,7 @@ abstract contract BaseAuction is IAuction, ReentrancyGuard, Pausable, Ownable {
         view
     {
         // Check if it's ERC721 or ERC1155
-        try IERC721(nftContract).supportsInterface(0x80ac58cd) returns (bool isERC721) {
+        try IERC721(nftContract).supportsInterface(Constants.ERC721_INTERFACE_ID) returns (bool isERC721) {
             if (isERC721) {
                 // ERC721 validation
                 if (IERC721(nftContract).ownerOf(tokenId) != seller) {
@@ -575,13 +577,7 @@ abstract contract BaseAuction is IAuction, ReentrancyGuard, Pausable, Ownable {
      * @notice Gets pending refund amount for a bidder
      * @return refundAmount Amount available for refund
      */
-    function getPendingRefund(bytes32, address)
-        external
-        view
-        virtual
-        override
-        returns (uint256 refundAmount)
-    {
+    function getPendingRefund(bytes32, address) external view virtual override returns (uint256 refundAmount) {
         // This will be implemented by child contracts
         return 0;
     }
@@ -803,7 +799,7 @@ abstract contract BaseAuction is IAuction, ReentrancyGuard, Pausable, Ownable {
             }
         } else {
             // Direct transfer for standalone auction contracts
-            try IERC721(auction.nftContract).supportsInterface(0x80ac58cd) returns (bool isERC721) {
+            try IERC721(auction.nftContract).supportsInterface(Constants.ERC721_INTERFACE_ID) returns (bool isERC721) {
                 if (isERC721) {
                     IERC721(auction.nftContract).transferFrom(auction.seller, to, auction.tokenId);
                 } else {

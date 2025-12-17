@@ -185,11 +185,7 @@ contract DeployAll is Script {
         // Deploy Validators
         listingValidator = new ListingValidator(address(accessControl));
         marketplaceValidator = new MarketplaceValidator();
-        collectionVerifier = new CollectionVerifier(
-            address(accessControl),
-            admin,
-            0
-        );
+        collectionVerifier = new CollectionVerifier(address(accessControl), admin, 0);
 
         console.log("  ListingValidator:", address(listingValidator));
         console.log("  MarketplaceValidator:", address(marketplaceValidator));
@@ -200,10 +196,7 @@ contract DeployAll is Script {
         console.log("3/9 Deploying Fee System...");
         baseFee = new Fee(admin, 500); // 5% default royalty fee
         feeManager = new AdvancedFeeManager(admin, address(accessControl));
-        royaltyManager = new AdvancedRoyaltyManager(
-            address(accessControl),
-            address(baseFee)
-        );
+        royaltyManager = new AdvancedRoyaltyManager(address(accessControl), address(baseFee));
 
         console.log("  BaseFee:", address(baseFee));
         console.log("  FeeManager:", address(feeManager));
@@ -241,11 +234,7 @@ contract DeployAll is Script {
         DutchAuctionImplementation dutchImpl = new DutchAuctionImplementation();
 
         // Deploy factory with pre-deployed implementations
-        auctionFactory = new AuctionFactory(
-            admin,
-            address(englishImpl),
-            address(dutchImpl)
-        );
+        auctionFactory = new AuctionFactory(admin, address(englishImpl), address(dutchImpl));
 
         // Store references
         englishAuction = EnglishAuction(address(englishImpl));
@@ -260,24 +249,15 @@ contract DeployAll is Script {
         console.log("7/9 Deploying Advanced Managers...");
 
         // Deploy Offer Manager
-        offerManager = new OfferManager(
-            address(accessControl),
-            address(feeManager)
-        );
+        offerManager = new OfferManager(address(accessControl), address(feeManager));
         console.log("  OfferManager:", address(offerManager));
 
         // Deploy Bundle Manager
-        bundleManager = new BundleManager(
-            address(accessControl),
-            address(feeManager)
-        );
+        bundleManager = new BundleManager(address(accessControl), address(feeManager));
         console.log("  BundleManager:", address(bundleManager));
 
         // Deploy Advanced Listing Manager
-        listingManager = new AdvancedListingManager(
-            address(accessControl),
-            address(listingValidator)
-        );
+        listingManager = new AdvancedListingManager(address(accessControl), address(listingValidator));
         console.log("  AdvancedListingManager:", address(listingManager));
     }
 
@@ -296,11 +276,7 @@ contract DeployAll is Script {
      * @param role Role needed for execution
      * @param data Calldata to execute
      */
-    function _executeWithTemporaryRole(
-        address target,
-        bytes32 role,
-        bytes memory data
-    ) private {
+    function _executeWithTemporaryRole(address target, bytes32 role, bytes memory data) private {
         AccessControl accessControlledContract = AccessControl(target);
 
         // Step 1: Grant temporary role to deployer
@@ -308,10 +284,7 @@ contract DeployAll is Script {
 
         // Step 2: Execute the privileged function
         (bool success, bytes memory returnData) = target.call(data);
-        require(
-            success,
-            string(abi.encodePacked("Execution failed: ", returnData))
-        );
+        require(success, string(abi.encodePacked("Execution failed: ", returnData)));
 
         // Step 3: Immediately revoke temporary role
         accessControlledContract.revokeRole(role, deployer);
@@ -325,12 +298,7 @@ contract DeployAll is Script {
         // Deploy registries with deployer as initial admin for setup
         hubExchangeRegistry = new ExchangeRegistry(deployer);
         hubCollectionRegistry = new CollectionRegistry(deployer);
-        hubFeeRegistry = new FeeRegistry(
-            deployer,
-            address(baseFee),
-            address(feeManager),
-            address(royaltyManager)
-        );
+        hubFeeRegistry = new FeeRegistry(deployer, address(baseFee), address(feeManager), address(royaltyManager));
         hubAuctionRegistry = new AuctionRegistry(deployer);
 
         // Deploy AdminHub
@@ -485,20 +453,14 @@ contract DeployAll is Script {
 
         // Configure AdminHub
         adminHub.setAdditionalContracts(
-            address(listingValidator),
-            address(emergencyManager),
-            address(accessControl),
-            address(historyTracker)
+            address(listingValidator), address(emergencyManager), address(accessControl), address(historyTracker)
         );
 
         console.log("AdminHub configured successfully");
 
         // Update UserHub references
         userHub.updateAdditionalContracts(
-            address(listingValidator),
-            address(emergencyManager),
-            address(accessControl),
-            address(historyTracker)
+            address(listingValidator), address(emergencyManager), address(accessControl), address(historyTracker)
         );
 
         console.log("UserHub configured successfully");
@@ -510,26 +472,14 @@ contract DeployAll is Script {
      */
     function _configureRegistries() internal {
         // Use AdminHub to register contracts (this has proper admin roles)
-        adminHub.registerExchange(
-            IExchangeRegistry.TokenStandard.ERC721,
-            address(erc721Exchange)
-        );
-        adminHub.registerExchange(
-            IExchangeRegistry.TokenStandard.ERC1155,
-            address(erc1155Exchange)
-        );
+        adminHub.registerExchange(IExchangeRegistry.TokenStandard.ERC721, address(erc721Exchange));
+        adminHub.registerExchange(IExchangeRegistry.TokenStandard.ERC1155, address(erc1155Exchange));
 
         adminHub.registerCollectionFactory("ERC721", address(erc721Factory));
         adminHub.registerCollectionFactory("ERC1155", address(erc1155Factory));
 
-        adminHub.registerAuction(
-            IAuctionRegistry.AuctionType.ENGLISH,
-            address(englishAuction)
-        );
-        adminHub.registerAuction(
-            IAuctionRegistry.AuctionType.DUTCH,
-            address(dutchAuction)
-        );
+        adminHub.registerAuction(IAuctionRegistry.AuctionType.ENGLISH, address(englishAuction));
+        adminHub.registerAuction(IAuctionRegistry.AuctionType.DUTCH, address(dutchAuction));
         adminHub.updateAuctionFactory(address(auctionFactory));
     }
 
@@ -591,8 +541,6 @@ contract DeployAll is Script {
 
         deployAll();
         // Note: Admin must call configureSystem() separately for security
-        console.log(
-            "WARNING: Admin must call configureSystem() to complete setup"
-        );
+        console.log("WARNING: Admin must call configureSystem() to complete setup");
     }
 }
