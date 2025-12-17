@@ -140,12 +140,7 @@ contract AdvancedMarketplaceScenariosTest is Test {
 
         // Create multiple listings directly on ERC721 exchange
         for (uint256 i = 1; i <= 3; i++) {
-            erc721Exchange.listNFT(
-                address(mockERC721),
-                i,
-                PRICE_1_ETH * i,
-                DURATION_7_DAYS
-            );
+            erc721Exchange.listNFT(address(mockERC721), i, PRICE_1_ETH * i, DURATION_7_DAYS);
         }
         console2.log("Created 3 concurrent listings");
 

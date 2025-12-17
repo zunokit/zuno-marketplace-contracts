@@ -68,7 +68,7 @@ contract AuctionTestHelpers is Test {
         // Deploy auction contracts
         englishAuction = new EnglishAuction(MARKETPLACE_WALLET);
         dutchAuction = new DutchAuction(MARKETPLACE_WALLET);
-        
+
         // Deploy implementations for factory
         EnglishAuctionImplementation englishImpl = new EnglishAuctionImplementation();
         DutchAuctionImplementation dutchImpl = new DutchAuctionImplementation();

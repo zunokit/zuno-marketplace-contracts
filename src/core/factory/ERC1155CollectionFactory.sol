@@ -2,11 +2,12 @@
 pragma solidity ^0.8.30;
 
 import {CollectionParams} from "src/types/ListingTypes.sol";
-import {ERC1155CollectionCreated} from "src/events/CollectionEvents.sol";
+import {ERC1155CollectionCreated, ERC1155CollectionCreatedWithAllowlist} from "src/events/CollectionEvents.sol";
 import {ICollectionFactory} from "src/interfaces/IMarketplaceCore.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
 import {ERC1155CollectionImplementation} from "src/core/proxy/ERC1155CollectionImplementation.sol";
+import {BaseCollection} from "src/common/BaseCollection.sol";
 import "@openzeppelin/contracts/proxy/Clones.sol";
 
 /**
@@ -40,6 +41,34 @@ contract ERC1155CollectionFactory is ERC165, ICollectionFactory {
      */
     function createERC1155Collection(CollectionParams memory params) external returns (address) {
         return _createCollectionInternal(params);
+    }
+
+    /**
+     * @notice Creates a new ERC1155 collection with allowlist setup in a single transaction
+     * @param params Collection parameters
+     * @param allowlistAddresses Array of addresses to add to allowlist
+     * @param enableAllowlistOnly If true, only allowlisted addresses can ever mint
+     * @return The address of the created collection
+     * @dev This reduces MetaMask confirmations from 3 to 1 when creating a collection with allowlist
+     */
+    function createCollectionWithAllowlist(
+        CollectionParams memory params,
+        address[] calldata allowlistAddresses,
+        bool enableAllowlistOnly
+    ) external returns (address) {
+        // Create collection
+        address collectionAddr = _createCollectionInternal(params);
+
+        // Setup allowlist if addresses provided or mode needs to be set
+        if (allowlistAddresses.length > 0 || enableAllowlistOnly) {
+            BaseCollection(collectionAddr).setupAllowlist(allowlistAddresses, enableAllowlistOnly);
+        }
+
+        emit ERC1155CollectionCreatedWithAllowlist(
+            collectionAddr, msg.sender, allowlistAddresses.length, enableAllowlistOnly
+        );
+
+        return collectionAddr;
     }
 
     /**
