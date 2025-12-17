@@ -32,12 +32,8 @@ contract AdminHub is AccessControl {
     address public upgradeManager;
     address public configManager;
 
-
     event ContractsConfigured(
-        address listingValidator,
-        address emergencyManager,
-        address accessControl,
-        address historyTracker
+        address listingValidator, address emergencyManager, address accessControl, address historyTracker
     );
 
     constructor(
@@ -85,18 +81,16 @@ contract AdminHub is AccessControl {
         accessControl = _accessControl;
         historyTracker = _historyTracker;
 
-        emit ContractsConfigured(
-            _listingValidator,
-            _emergencyManager,
-            _accessControl,
-            _historyTracker
-        );
+        emit ContractsConfigured(_listingValidator, _emergencyManager, _accessControl, _historyTracker);
     }
 
     /**
      * @notice Register exchange
      */
-    function registerExchange(IExchangeRegistry.TokenStandard standard, address exchange) external onlyRole(ADMIN_ROLE) {
+    function registerExchange(IExchangeRegistry.TokenStandard standard, address exchange)
+        external
+        onlyRole(ADMIN_ROLE)
+    {
         exchangeRegistry.registerExchange(standard, exchange);
     }
 
@@ -133,28 +127,21 @@ contract AdminHub is AccessControl {
     /**
      * @notice Get all registry addresses
      */
-    function getAllRegistries() external view returns (
-        address exchange,
-        address collection,
-        address fee,
-        address auction
-    ) {
-        return (
-            address(exchangeRegistry),
-            address(collectionRegistry),
-            address(feeRegistry),
-            address(auctionRegistry)
-        );
+    function getAllRegistries()
+        external
+        view
+        returns (address exchange, address collection, address fee, address auction)
+    {
+        return (address(exchangeRegistry), address(collectionRegistry), address(feeRegistry), address(auctionRegistry));
     }
 
     /**
      * @notice Set management contract addresses
      */
-    function setManagementContracts(
-        address _roleManager,
-        address _upgradeManager,
-        address _configManager
-    ) external onlyRole(ADMIN_ROLE) {
+    function setManagementContracts(address _roleManager, address _upgradeManager, address _configManager)
+        external
+        onlyRole(ADMIN_ROLE)
+    {
         roleManager = _roleManager;
         upgradeManager = _upgradeManager;
         configManager = _configManager;

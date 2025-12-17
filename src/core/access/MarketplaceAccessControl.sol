@@ -49,7 +49,6 @@ contract MarketplaceAccessControl is AccessControl, Ownable, ReentrancyGuard {
     /// @notice Current number of members for each role
     mapping(bytes32 => uint256) public currentRoleMembers;
 
-
     // ============================================================================
     // MODIFIERS
     // ============================================================================
@@ -138,11 +137,7 @@ contract MarketplaceAccessControl is AccessControl, Ownable, ReentrancyGuard {
      * @param role Role to revoke
      * @param account Account to revoke role from
      */
-    function revokeRoleSimple(bytes32 role, address account)
-        external
-        onlyRole(ADMIN_ROLE)
-        nonReentrant
-    {
+    function revokeRoleSimple(bytes32 role, address account) external onlyRole(ADMIN_ROLE) nonReentrant {
         if (!hasRole(role, account)) {
             revert MarketplaceAccessControl__RoleNotGranted();
         }
@@ -191,7 +186,6 @@ contract MarketplaceAccessControl is AccessControl, Ownable, ReentrancyGuard {
         emit RoleMemberLimitUpdated(role, oldLimit, maxMembers, msg.sender);
     }
 
-
     /**
      * @notice Checks if an account has specific permission
      * @param account Account to check
@@ -221,7 +215,6 @@ contract MarketplaceAccessControl is AccessControl, Ownable, ReentrancyGuard {
 
         return false;
     }
-
 
     // ============================================================================
     // VIEW FUNCTIONS
