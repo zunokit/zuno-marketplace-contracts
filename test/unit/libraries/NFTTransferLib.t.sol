@@ -259,7 +259,7 @@ contract NFTTransferLibTest is Test {
         assertEq(errorMessage, "Invalid NFT contract");
     }
 
-    function testValidateTransferParams_InvalidFrom() public  view{
+    function testValidateTransferParams_InvalidFrom() public view {
         NFTTransferLib.TransferParams memory params = NFTTransferLib.TransferParams({
             nftContract: address(mockERC721),
             from: address(0),
@@ -275,7 +275,7 @@ contract NFTTransferLibTest is Test {
         assertEq(errorMessage, "Invalid from address");
     }
 
-    function testValidateTransferParams_InvalidTo() public  view{
+    function testValidateTransferParams_InvalidTo() public view {
         NFTTransferLib.TransferParams memory params = NFTTransferLib.TransferParams({
             nftContract: address(mockERC721),
             from: seller,
@@ -291,7 +291,7 @@ contract NFTTransferLibTest is Test {
         assertEq(errorMessage, "Invalid to address");
     }
 
-    function testValidateTransferParams_ZeroAmount() public  view{
+    function testValidateTransferParams_ZeroAmount() public view {
         NFTTransferLib.TransferParams memory params = NFTTransferLib.TransferParams({
             nftContract: address(mockERC1155),
             from: seller,
@@ -311,7 +311,7 @@ contract NFTTransferLibTest is Test {
     // HELPER FUNCTION TESTS
     // ============================================================================
 
-    function testCreateTransferParams() public  view{
+    function testCreateTransferParams() public view {
         NFTTransferLib.TransferParams memory params =
             NFTTransferLib.createTransferParams(address(mockERC721), tokenId, 1, seller, buyer);
 
