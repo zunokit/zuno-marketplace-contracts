@@ -502,12 +502,7 @@ contract DutchAuction is BaseAuction {
      * @notice Gets pending refund amount for a bidder
      * @return refundAmount Amount available for refund (always 0 for Dutch auctions)
      */
-    function getPendingRefund(bytes32, address)
-        external
-        view
-        override
-        returns (uint256)
-    {
+    function getPendingRefund(bytes32, address) external view override returns (uint256) {
         // Dutch auctions don't have bidding, so no refunds
         return 0;
     }

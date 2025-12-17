@@ -91,6 +91,28 @@ contract BaseCollection is Ownable {
     }
 
     /**
+     * @notice Sets up allowlist with addresses and mode in a single call
+     * @param addresses Array of addresses to add to allowlist
+     * @param enableAllowlistOnly If true, only allowlisted addresses can ever mint
+     * @dev This function allows setting up allowlist in one transaction instead of two
+     */
+    function setupAllowlist(address[] calldata addresses, bool enableAllowlistOnly) external onlyOwner {
+        // Add addresses to allowlist
+        uint256 length = addresses.length;
+        if (length > MAX_ALLOWLIST_BATCH_SIZE) {
+            revert Collection__MintLimitExceeded();
+        }
+
+        for (uint256 i = 0; i < length; i++) {
+            if (addresses[i] == address(0)) revert Collection__InvalidAmount();
+            s_allowlist[addresses[i]] = true;
+        }
+
+        // Set allowlist-only mode
+        s_allowlistOnly = enableAllowlistOnly;
+    }
+
+    /**
      * @notice Updates the allowlist stage end time
      * @param newEndTime New end time for allowlist stage
      */

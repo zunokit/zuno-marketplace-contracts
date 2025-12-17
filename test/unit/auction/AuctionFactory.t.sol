@@ -33,10 +33,7 @@ contract AuctionFactoryTest is AuctionTestHelpers {
     );
 
     event AuctionCreatedViaFactory(
-        bytes32 indexed auctionId,
-        address indexed auctionContract,
-        address indexed seller,
-        AuctionType auctionType
+        bytes32 indexed auctionId, address indexed auctionContract, address indexed seller, AuctionType auctionType
     );
 
     // ============================================================================
@@ -62,11 +59,7 @@ contract AuctionFactoryTest is AuctionTestHelpers {
 
         // Deploy new factory to test constructor
         vm.expectEmit(true, true, true, true);
-        emit AuctionImplementationsDeployed(
-            address(englishImpl),
-            address(dutchImpl),
-            MARKETPLACE_WALLET
-        );
+        emit AuctionImplementationsDeployed(address(englishImpl), address(dutchImpl), MARKETPLACE_WALLET);
 
         AuctionFactory newFactory = new AuctionFactory(MARKETPLACE_WALLET, address(englishImpl), address(dutchImpl));
 
@@ -79,7 +72,7 @@ contract AuctionFactoryTest is AuctionTestHelpers {
     function test_Constructor_RevertIfZeroAddress() public {
         EnglishAuctionImplementation englishImpl = new EnglishAuctionImplementation();
         DutchAuctionImplementation dutchImpl = new DutchAuctionImplementation();
-        
+
         vm.expectRevert(Auction__ZeroAddress.selector);
         new AuctionFactory(address(0), address(englishImpl), address(dutchImpl));
     }

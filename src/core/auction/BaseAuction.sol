@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.30;
 
+import {Constants} from "src/common/Constants.sol";
+
 import {IAuction} from "src/interfaces/IAuction.sol";
 import {IMarketplaceValidator} from "src/interfaces/IMarketplaceValidator.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
@@ -304,7 +306,7 @@ abstract contract BaseAuction is IAuction, ReentrancyGuard, Pausable, Ownable {
         view
     {
         // Check if it's ERC721 or ERC1155
-        try IERC721(nftContract).supportsInterface(0x80ac58cd) returns (bool isERC721) {
+        try IERC721(nftContract).supportsInterface(Constants.ERC721_INTERFACE_ID) returns (bool isERC721) {
             if (isERC721) {
                 // ERC721 validation
                 if (IERC721(nftContract).ownerOf(tokenId) != seller) {
@@ -555,6 +557,70 @@ abstract contract BaseAuction is IAuction, ReentrancyGuard, Pausable, Ownable {
     }
 
     /**
+     * @notice Gets active auctions by seller (excludes CANCELLED and ENDED)
+     * @param seller Address of the seller
+     * @return auctionIds Array of active auction IDs
+     * @dev Filters out cancelled and ended auctions for cleaner UI display
+     */
+    function getActiveAuctionsBySeller(address seller) external view returns (bytes32[] memory auctionIds) {
+        bytes32[] memory allSellerAuctions = sellerAuctions[seller];
+        uint256 activeCount = 0;
+
+        // First pass: count active auctions
+        for (uint256 i = 0; i < allSellerAuctions.length; i++) {
+            AuctionStatus status = auctions[allSellerAuctions[i]].status;
+            if (status == AuctionStatus.CREATED || status == AuctionStatus.ACTIVE) {
+                activeCount++;
+            }
+        }
+
+        // Second pass: build result array
+        auctionIds = new bytes32[](activeCount);
+        uint256 index = 0;
+        for (uint256 i = 0; i < allSellerAuctions.length; i++) {
+            AuctionStatus status = auctions[allSellerAuctions[i]].status;
+            if (status == AuctionStatus.CREATED || status == AuctionStatus.ACTIVE) {
+                auctionIds[index++] = allSellerAuctions[i];
+            }
+        }
+
+        return auctionIds;
+    }
+
+    /**
+     * @notice Gets auctions by seller filtered by status
+     * @param seller Address of the seller
+     * @param status The status to filter by
+     * @return auctionIds Array of auction IDs with the specified status
+     */
+    function getAuctionsBySellerAndStatus(address seller, AuctionStatus status)
+        external
+        view
+        returns (bytes32[] memory auctionIds)
+    {
+        bytes32[] memory allSellerAuctions = sellerAuctions[seller];
+        uint256 matchCount = 0;
+
+        // First pass: count matching auctions
+        for (uint256 i = 0; i < allSellerAuctions.length; i++) {
+            if (auctions[allSellerAuctions[i]].status == status) {
+                matchCount++;
+            }
+        }
+
+        // Second pass: build result array
+        auctionIds = new bytes32[](matchCount);
+        uint256 index = 0;
+        for (uint256 i = 0; i < allSellerAuctions.length; i++) {
+            if (auctions[allSellerAuctions[i]].status == status) {
+                auctionIds[index++] = allSellerAuctions[i];
+            }
+        }
+
+        return auctionIds;
+    }
+
+    /**
      * @notice Gets auctions by NFT contract
      * @param nftContract Address of the NFT contract
      * @return auctionIds Array of auction IDs
@@ -575,13 +641,7 @@ abstract contract BaseAuction is IAuction, ReentrancyGuard, Pausable, Ownable {
      * @notice Gets pending refund amount for a bidder
      * @return refundAmount Amount available for refund
      */
-    function getPendingRefund(bytes32, address)
-        external
-        view
-        virtual
-        override
-        returns (uint256 refundAmount)
-    {
+    function getPendingRefund(bytes32, address) external view virtual override returns (uint256 refundAmount) {
         // This will be implemented by child contracts
         return 0;
     }
@@ -803,7 +863,7 @@ abstract contract BaseAuction is IAuction, ReentrancyGuard, Pausable, Ownable {
             }
         } else {
             // Direct transfer for standalone auction contracts
-            try IERC721(auction.nftContract).supportsInterface(0x80ac58cd) returns (bool isERC721) {
+            try IERC721(auction.nftContract).supportsInterface(Constants.ERC721_INTERFACE_ID) returns (bool isERC721) {
                 if (isERC721) {
                     IERC721(auction.nftContract).transferFrom(auction.seller, to, auction.tokenId);
                 } else {
