@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.30;
 
+import {Constants} from "src/common/Constants.sol";
+
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
@@ -904,7 +906,7 @@ contract OfferManager is Ownable, ReentrancyGuard, Pausable {
      */
     function _transferNFT(address collection, uint256 tokenId, address from, address to) internal {
         // Auto-detect NFT standard and transfer
-        try IERC721(collection).supportsInterface(0x80ac58cd) returns (bool isERC721) {
+        try IERC721(collection).supportsInterface(Constants.ERC721_INTERFACE_ID) returns (bool isERC721) {
             if (isERC721) {
                 IERC721(collection).safeTransferFrom(from, to, tokenId);
             } else {

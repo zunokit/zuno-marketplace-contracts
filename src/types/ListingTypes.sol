@@ -108,31 +108,27 @@ struct CollectionParams {
  * @notice Core listing information - GAS OPTIMIZED
  * @dev Storage packed to minimize gas costs
  * Slot 1: listingId (32 bytes)
- * Slot 2: seller (20 bytes) + price (12 bytes) 
+ * Slot 2: seller (20 bytes) + price (12 bytes)
  * Slot 3: nftContract (20 bytes) + tokenId (12 bytes)
  * Slot 4: times (8+8 bytes) + minOfferPrice (8 bytes) + quantity (4 bytes) + flags (3 bytes) + padding
  * Slot 5: bundleId (32 bytes)
  * Slot 6+: metadata (dynamic)
  */
 struct Listing {
-    bytes32 listingId;        // Slot 1: 32 bytes
-    
-    address seller;           // Slot 2: 20 bytes
-    uint96 price;            // Slot 2: 12 bytes (max ~79B tokens with 18 decimals)
-    
-    address nftContract;      // Slot 3: 20 bytes  
-    uint96 tokenId;          // Slot 3: 12 bytes (max ~79 quintillion token IDs)
-    
-    uint64 startTime;        // Slot 4: 8 bytes 
-    uint64 endTime;          // Slot 4: 8 bytes
-    uint64 minOfferPrice;    // Slot 4: 8 bytes (max ~18 ETH)
-    uint32 quantity;         // Slot 4: 4 bytes (max 4B items)
+    bytes32 listingId; // Slot 1: 32 bytes
+    address seller; // Slot 2: 20 bytes
+    uint96 price; // Slot 2: 12 bytes (max ~79B tokens with 18 decimals)
+    address nftContract; // Slot 3: 20 bytes
+    uint96 tokenId; // Slot 3: 12 bytes (max ~79 quintillion token IDs)
+    uint64 startTime; // Slot 4: 8 bytes
+    uint64 endTime; // Slot 4: 8 bytes
+    uint64 minOfferPrice; // Slot 4: 8 bytes (max ~18 ETH)
+    uint32 quantity; // Slot 4: 4 bytes (max 4B items)
     ListingType listingType; // Slot 4: 1 byte enum
-    ListingStatus status;    // Slot 4: 1 byte enum
-    bool acceptOffers;       // Slot 4: 1 byte
-    
-    bytes32 bundleId;        // Slot 5: 32 bytes
-    bytes metadata;          // Slot 6+: dynamic
+    ListingStatus status; // Slot 4: 1 byte enum
+    bool acceptOffers; // Slot 4: 1 byte
+    bytes32 bundleId; // Slot 5: 32 bytes
+    bytes metadata; // Slot 6+: dynamic
 }
 
 /**

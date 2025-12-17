@@ -380,14 +380,7 @@ contract EnglishAuctionTest is AuctionTestHelpers {
         mockERC721.setApprovalForAll(address(englishAuction), true);
 
         bytes32 auctionId = englishAuction.createAuction(
-            address(mockERC721),
-            tokenId,
-            1,
-            startPrice,
-            reservePrice,
-            DEFAULT_DURATION,
-            AuctionType.ENGLISH,
-            SELLER
+            address(mockERC721), tokenId, 1, startPrice, reservePrice, DEFAULT_DURATION, AuctionType.ENGLISH, SELLER
         );
         vm.stopPrank();
 

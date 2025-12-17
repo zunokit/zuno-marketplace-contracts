@@ -178,18 +178,8 @@ contract AdminHubTest is Test {
     function test_SetAdditionalContracts_Success() public {
         vm.prank(admin);
         vm.expectEmit(true, true, true, true);
-        emit AdminHub.ContractsConfigured(
-            listingValidator,
-            emergencyManager,
-            accessControl,
-            historyTracker
-        );
-        adminHub.setAdditionalContracts(
-            listingValidator,
-            emergencyManager,
-            accessControl,
-            historyTracker
-        );
+        emit AdminHub.ContractsConfigured(listingValidator, emergencyManager, accessControl, historyTracker);
+        adminHub.setAdditionalContracts(listingValidator, emergencyManager, accessControl, historyTracker);
 
         assertEq(adminHub.listingValidator(), listingValidator);
         assertEq(adminHub.emergencyManager(), emergencyManager);
@@ -200,12 +190,7 @@ contract AdminHubTest is Test {
     function test_SetAdditionalContracts_RevertNotAdmin() public {
         vm.prank(nonAdmin);
         vm.expectRevert();
-        adminHub.setAdditionalContracts(
-            listingValidator,
-            emergencyManager,
-            accessControl,
-            historyTracker
-        );
+        adminHub.setAdditionalContracts(listingValidator, emergencyManager, accessControl, historyTracker);
     }
 
     function test_SetAdditionalContracts_CanUpdateMultipleTimes() public {
@@ -214,21 +199,11 @@ contract AdminHubTest is Test {
 
         // First update
         vm.prank(admin);
-        adminHub.setAdditionalContracts(
-            listingValidator,
-            emergencyManager,
-            accessControl,
-            historyTracker
-        );
+        adminHub.setAdditionalContracts(listingValidator, emergencyManager, accessControl, historyTracker);
 
         // Second update
         vm.prank(admin);
-        adminHub.setAdditionalContracts(
-            newListingValidator,
-            newEmergencyManager,
-            accessControl,
-            historyTracker
-        );
+        adminHub.setAdditionalContracts(newListingValidator, newEmergencyManager, accessControl, historyTracker);
 
         assertEq(adminHub.listingValidator(), newListingValidator);
         assertEq(adminHub.emergencyManager(), newEmergencyManager);
@@ -240,37 +215,24 @@ contract AdminHubTest is Test {
 
     function test_RegisterExchange_ERC721_Success() public {
         vm.prank(admin);
-        adminHub.registerExchange(
-            IExchangeRegistry.TokenStandard.ERC721,
-            erc721Exchange
-        );
+        adminHub.registerExchange(IExchangeRegistry.TokenStandard.ERC721, erc721Exchange);
 
-        address registered = exchangeRegistry.getExchange(
-            IExchangeRegistry.TokenStandard.ERC721
-        );
+        address registered = exchangeRegistry.getExchange(IExchangeRegistry.TokenStandard.ERC721);
         assertEq(registered, erc721Exchange);
     }
 
     function test_RegisterExchange_ERC1155_Success() public {
         vm.prank(admin);
-        adminHub.registerExchange(
-            IExchangeRegistry.TokenStandard.ERC1155,
-            erc1155Exchange
-        );
+        adminHub.registerExchange(IExchangeRegistry.TokenStandard.ERC1155, erc1155Exchange);
 
-        address registered = exchangeRegistry.getExchange(
-            IExchangeRegistry.TokenStandard.ERC1155
-        );
+        address registered = exchangeRegistry.getExchange(IExchangeRegistry.TokenStandard.ERC1155);
         assertEq(registered, erc1155Exchange);
     }
 
     function test_RegisterExchange_RevertNotAdmin() public {
         vm.prank(nonAdmin);
         vm.expectRevert();
-        adminHub.registerExchange(
-            IExchangeRegistry.TokenStandard.ERC721,
-            erc721Exchange
-        );
+        adminHub.registerExchange(IExchangeRegistry.TokenStandard.ERC721, erc721Exchange);
     }
 
     // ============================================================================
@@ -305,37 +267,24 @@ contract AdminHubTest is Test {
 
     function test_RegisterAuction_English_Success() public {
         vm.prank(admin);
-        adminHub.registerAuction(
-            IAuctionRegistry.AuctionType.ENGLISH,
-            englishAuction
-        );
+        adminHub.registerAuction(IAuctionRegistry.AuctionType.ENGLISH, englishAuction);
 
-        address registered = auctionRegistry.getAuctionContract(
-            IAuctionRegistry.AuctionType.ENGLISH
-        );
+        address registered = auctionRegistry.getAuctionContract(IAuctionRegistry.AuctionType.ENGLISH);
         assertEq(registered, englishAuction);
     }
 
     function test_RegisterAuction_Dutch_Success() public {
         vm.prank(admin);
-        adminHub.registerAuction(
-            IAuctionRegistry.AuctionType.DUTCH,
-            dutchAuction
-        );
+        adminHub.registerAuction(IAuctionRegistry.AuctionType.DUTCH, dutchAuction);
 
-        address registered = auctionRegistry.getAuctionContract(
-            IAuctionRegistry.AuctionType.DUTCH
-        );
+        address registered = auctionRegistry.getAuctionContract(IAuctionRegistry.AuctionType.DUTCH);
         assertEq(registered, dutchAuction);
     }
 
     function test_RegisterAuction_RevertNotAdmin() public {
         vm.prank(nonAdmin);
         vm.expectRevert();
-        adminHub.registerAuction(
-            IAuctionRegistry.AuctionType.ENGLISH,
-            englishAuction
-        );
+        adminHub.registerAuction(IAuctionRegistry.AuctionType.ENGLISH, englishAuction);
     }
 
     // ============================================================================
@@ -375,12 +324,7 @@ contract AdminHubTest is Test {
     // ============================================================================
 
     function test_GetAllRegistries_Success() public view {
-        (
-            address exchange,
-            address collection,
-            address fee,
-            address auction
-        ) = adminHub.getAllRegistries();
+        (address exchange, address collection, address fee, address auction) = adminHub.getAllRegistries();
 
         assertEq(exchange, address(exchangeRegistry));
         assertEq(collection, address(collectionRegistry));
@@ -394,11 +338,7 @@ contract AdminHubTest is Test {
 
     function test_SetManagementContracts_Success() public {
         vm.prank(admin);
-        adminHub.setManagementContracts(
-            roleManager,
-            upgradeManager,
-            configManager
-        );
+        adminHub.setManagementContracts(roleManager, upgradeManager, configManager);
 
         assertEq(adminHub.roleManager(), roleManager);
         assertEq(adminHub.upgradeManager(), upgradeManager);
@@ -408,11 +348,7 @@ contract AdminHubTest is Test {
     function test_SetManagementContracts_RevertNotAdmin() public {
         vm.prank(nonAdmin);
         vm.expectRevert();
-        adminHub.setManagementContracts(
-            roleManager,
-            upgradeManager,
-            configManager
-        );
+        adminHub.setManagementContracts(roleManager, upgradeManager, configManager);
     }
 
     function test_SetManagementContracts_CanUpdateMultipleTimes() public {
@@ -420,19 +356,11 @@ contract AdminHubTest is Test {
 
         // First update
         vm.prank(admin);
-        adminHub.setManagementContracts(
-            roleManager,
-            upgradeManager,
-            configManager
-        );
+        adminHub.setManagementContracts(roleManager, upgradeManager, configManager);
 
         // Second update
         vm.prank(admin);
-        adminHub.setManagementContracts(
-            newRoleManager,
-            upgradeManager,
-            configManager
-        );
+        adminHub.setManagementContracts(newRoleManager, upgradeManager, configManager);
 
         assertEq(adminHub.roleManager(), newRoleManager);
     }
@@ -443,17 +371,9 @@ contract AdminHubTest is Test {
 
     function test_GetManagementContracts_Success() public {
         vm.prank(admin);
-        adminHub.setManagementContracts(
-            roleManager,
-            upgradeManager,
-            configManager
-        );
+        adminHub.setManagementContracts(roleManager, upgradeManager, configManager);
 
-        (
-            address _roleManager,
-            address _upgradeManager,
-            address _configManager
-        ) = adminHub.getManagementContracts();
+        (address _roleManager, address _upgradeManager, address _configManager) = adminHub.getManagementContracts();
 
         assertEq(_roleManager, roleManager);
         assertEq(_upgradeManager, upgradeManager);
@@ -461,11 +381,7 @@ contract AdminHubTest is Test {
     }
 
     function test_GetManagementContracts_BeforeSet_ReturnsZero() public view {
-        (
-            address _roleManager,
-            address _upgradeManager,
-            address _configManager
-        ) = adminHub.getManagementContracts();
+        (address _roleManager, address _upgradeManager, address _configManager) = adminHub.getManagementContracts();
 
         assertEq(_roleManager, address(0));
         assertEq(_upgradeManager, address(0));
@@ -485,12 +401,7 @@ contract AdminHubTest is Test {
     function test_EmergencyPause_RevertNotAdmin() public {
         // Set emergency manager first
         vm.prank(admin);
-        adminHub.setAdditionalContracts(
-            listingValidator,
-            emergencyManager,
-            accessControl,
-            historyTracker
-        );
+        adminHub.setAdditionalContracts(listingValidator, emergencyManager, accessControl, historyTracker);
 
         vm.prank(nonAdmin);
         vm.expectRevert();
@@ -536,57 +447,30 @@ contract AdminHubTest is Test {
         vm.startPrank(admin);
 
         // Step 1: Register exchanges
-        adminHub.registerExchange(
-            IExchangeRegistry.TokenStandard.ERC721,
-            erc721Exchange
-        );
-        adminHub.registerExchange(
-            IExchangeRegistry.TokenStandard.ERC1155,
-            erc1155Exchange
-        );
+        adminHub.registerExchange(IExchangeRegistry.TokenStandard.ERC721, erc721Exchange);
+        adminHub.registerExchange(IExchangeRegistry.TokenStandard.ERC1155, erc1155Exchange);
 
         // Step 2: Register factories
         adminHub.registerCollectionFactory("ERC721", erc721Factory);
         adminHub.registerCollectionFactory("ERC1155", erc1155Factory);
 
         // Step 3: Register auctions
-        adminHub.registerAuction(
-            IAuctionRegistry.AuctionType.ENGLISH,
-            englishAuction
-        );
-        adminHub.registerAuction(
-            IAuctionRegistry.AuctionType.DUTCH,
-            dutchAuction
-        );
+        adminHub.registerAuction(IAuctionRegistry.AuctionType.ENGLISH, englishAuction);
+        adminHub.registerAuction(IAuctionRegistry.AuctionType.DUTCH, dutchAuction);
         adminHub.updateAuctionFactory(auctionFactory);
 
         // Step 4: Set additional contracts
-        adminHub.setAdditionalContracts(
-            listingValidator,
-            emergencyManager,
-            accessControl,
-            historyTracker
-        );
+        adminHub.setAdditionalContracts(listingValidator, emergencyManager, accessControl, historyTracker);
 
         // Step 5: Set management contracts
-        adminHub.setManagementContracts(
-            roleManager,
-            upgradeManager,
-            configManager
-        );
+        adminHub.setManagementContracts(roleManager, upgradeManager, configManager);
 
         vm.stopPrank();
 
         // Verify all registrations
-        assertEq(
-            exchangeRegistry.getExchange(IExchangeRegistry.TokenStandard.ERC721),
-            erc721Exchange
-        );
+        assertEq(exchangeRegistry.getExchange(IExchangeRegistry.TokenStandard.ERC721), erc721Exchange);
         assertEq(collectionRegistry.getFactory("ERC721"), erc721Factory);
-        assertEq(
-            auctionRegistry.getAuctionContract(IAuctionRegistry.AuctionType.ENGLISH),
-            englishAuction
-        );
+        assertEq(auctionRegistry.getAuctionContract(IAuctionRegistry.AuctionType.ENGLISH), englishAuction);
         assertEq(adminHub.listingValidator(), listingValidator);
         assertEq(adminHub.roleManager(), roleManager);
     }
@@ -605,16 +489,10 @@ contract AdminHubTest is Test {
 
         // Admin can register exchanges
         vm.prank(admin);
-        adminHub.registerExchange(
-            IExchangeRegistry.TokenStandard.ERC721,
-            erc721Exchange
-        );
+        adminHub.registerExchange(IExchangeRegistry.TokenStandard.ERC721, erc721Exchange);
 
         // Verify registration worked
-        assertEq(
-            exchangeRegistry.getExchange(IExchangeRegistry.TokenStandard.ERC721),
-            erc721Exchange
-        );
+        assertEq(exchangeRegistry.getExchange(IExchangeRegistry.TokenStandard.ERC721), erc721Exchange);
     }
 
     function test_NonAdmin_CannotPerformAnyAdminAction() public {
@@ -622,39 +500,23 @@ contract AdminHubTest is Test {
 
         // Try all admin functions - all should revert
         vm.expectRevert();
-        adminHub.registerExchange(
-            IExchangeRegistry.TokenStandard.ERC721,
-            erc721Exchange
-        );
+        adminHub.registerExchange(IExchangeRegistry.TokenStandard.ERC721, erc721Exchange);
 
         vm.expectRevert();
         adminHub.registerCollectionFactory("ERC721", erc721Factory);
 
         vm.expectRevert();
-        adminHub.registerAuction(
-            IAuctionRegistry.AuctionType.ENGLISH,
-            englishAuction
-        );
+        adminHub.registerAuction(IAuctionRegistry.AuctionType.ENGLISH, englishAuction);
 
         vm.expectRevert();
         adminHub.updateAuctionFactory(auctionFactory);
 
         vm.expectRevert();
-        adminHub.setAdditionalContracts(
-            listingValidator,
-            emergencyManager,
-            accessControl,
-            historyTracker
-        );
+        adminHub.setAdditionalContracts(listingValidator, emergencyManager, accessControl, historyTracker);
 
         vm.expectRevert();
-        adminHub.setManagementContracts(
-            roleManager,
-            upgradeManager,
-            configManager
-        );
+        adminHub.setManagementContracts(roleManager, upgradeManager, configManager);
 
         vm.stopPrank();
     }
 }
-

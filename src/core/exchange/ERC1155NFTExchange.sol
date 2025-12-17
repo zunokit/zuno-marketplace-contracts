@@ -138,10 +138,10 @@ contract ERC1155NFTExchange is BaseNFTExchange {
 
         (address m_royaltyReceiver, uint256 m_royalty) =
             getRoyaltyInfo(s_listing.contractAddress, s_listing.tokenId, m_proportionalPrice);
-        
+
         uint256 m_takerFee;
         uint256 m_realityPrice;
-        
+
         unchecked {
             // Safe: takerFee is always <= 10000 (basis points)
             m_takerFee = (m_proportionalPrice * s_takerFee) / BPS_DENOMINATOR;

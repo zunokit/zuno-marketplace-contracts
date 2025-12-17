@@ -5,11 +5,13 @@ import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {IERC1155} from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
+import {Constants} from "src/common/Constants.sol";
 /**
  * @title NFTValidationLib
  * @notice Library for NFT ownership and approval validation
  * @dev Centralizes NFT validation logic to reduce code duplication
  */
+
 library NFTValidationLib {
     // ============================================================================
     // ERRORS
@@ -150,13 +152,13 @@ library NFTValidationLib {
             return NFTStandard.UNKNOWN;
         }
 
-        try IERC165(nftContract).supportsInterface(0x80ac58cd) returns (bool isERC721) {
+        try IERC165(nftContract).supportsInterface(Constants.ERC721_INTERFACE_ID) returns (bool isERC721) {
             if (isERC721) {
                 return NFTStandard.ERC721;
             }
         } catch {}
 
-        try IERC165(nftContract).supportsInterface(0xd9b67a26) returns (bool isERC1155) {
+        try IERC165(nftContract).supportsInterface(Constants.ERC1155_INTERFACE_ID) returns (bool isERC1155) {
             if (isERC1155) {
                 return NFTStandard.ERC1155;
             }

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.30;
 
+import {Constants} from "src/common/Constants.sol";
+
 import {EnglishAuctionImplementation} from "src/core/proxy/EnglishAuctionImplementation.sol";
 import {DutchAuctionImplementation} from "src/core/proxy/DutchAuctionImplementation.sol";
 import {IAuction} from "src/interfaces/IAuction.sol";
@@ -72,10 +74,7 @@ contract AuctionFactory is Ownable, Pausable, ReentrancyGuard {
     );
 
     event AuctionCreatedViaFactory(
-        bytes32 indexed auctionId,
-        address indexed auctionContract,
-        address indexed seller,
-        AuctionType auctionType
+        bytes32 indexed auctionId, address indexed auctionContract, address indexed seller, AuctionType auctionType
     );
 
     // ============================================================================
@@ -88,22 +87,18 @@ contract AuctionFactory is Ownable, Pausable, ReentrancyGuard {
      * @param _englishAuctionImpl Pre-deployed EnglishAuctionImplementation address
      * @param _dutchAuctionImpl Pre-deployed DutchAuctionImplementation address
      */
-    constructor(
-        address _marketplaceWallet,
-        address _englishAuctionImpl,
-        address _dutchAuctionImpl
-    ) Ownable(msg.sender) {
+    constructor(address _marketplaceWallet, address _englishAuctionImpl, address _dutchAuctionImpl)
+        Ownable(msg.sender)
+    {
         _validateMarketplaceWallet(_marketplaceWallet);
         require(_englishAuctionImpl != address(0), "Invalid english auction impl");
         require(_dutchAuctionImpl != address(0), "Invalid dutch auction impl");
-        
+
         marketplaceWallet = _marketplaceWallet;
         englishAuctionImplementation = _englishAuctionImpl;
         dutchAuctionImplementation = _dutchAuctionImpl;
 
-        emit AuctionImplementationsDeployed(
-            _englishAuctionImpl, _dutchAuctionImpl, _marketplaceWallet
-        );
+        emit AuctionImplementationsDeployed(_englishAuctionImpl, _dutchAuctionImpl, _marketplaceWallet);
     }
 
     // ============================================================================
@@ -417,7 +412,12 @@ contract AuctionFactory is Ownable, Pausable, ReentrancyGuard {
      * @return cancelledCount Number of auctions successfully cancelled
      * @dev Only auctions owned by msg.sender will be cancelled, others are skipped
      */
-    function batchCancelAuction(bytes32[] calldata auctionIds) external nonReentrant whenNotPaused returns (uint256 cancelledCount) {
+    function batchCancelAuction(bytes32[] calldata auctionIds)
+        external
+        nonReentrant
+        whenNotPaused
+        returns (uint256 cancelledCount)
+    {
         uint256 length = auctionIds.length;
         require(length > 0, "Empty array");
         require(length <= 20, "Max 20 cancellations per batch");
@@ -425,7 +425,7 @@ contract AuctionFactory is Ownable, Pausable, ReentrancyGuard {
         for (uint256 i = 0; i < length; i++) {
             bytes32 auctionId = auctionIds[i];
             address auctionContract = auctionToContract[auctionId];
-            
+
             // Skip if auction doesn't exist
             if (auctionContract == address(0)) {
                 continue;
@@ -433,7 +433,7 @@ contract AuctionFactory is Ownable, Pausable, ReentrancyGuard {
 
             // Get auction details
             IAuction.Auction memory auction = IAuction(auctionContract).getAuction(auctionId);
-            
+
             // Skip if not the seller
             if (auction.seller != msg.sender) {
                 continue;
@@ -680,7 +680,7 @@ contract AuctionFactory is Ownable, Pausable, ReentrancyGuard {
         require(isValidCaller, "Unauthorized caller");
 
         // Auto-detect NFT standard and transfer
-        try IERC721(nftContract).supportsInterface(0x80ac58cd) returns (bool isERC721) {
+        try IERC721(nftContract).supportsInterface(Constants.ERC721_INTERFACE_ID) returns (bool isERC721) {
             if (isERC721) {
                 IERC721(nftContract).transferFrom(from, to, tokenId);
             } else {
@@ -741,11 +741,10 @@ contract AuctionFactory is Ownable, Pausable, ReentrancyGuard {
      * @param auctionType Type of auction
      * @return auctionId The created auction ID
      */
-    function _initializeAuction(
-        address proxyAddress,
-        AuctionCreationParams memory params,
-        AuctionType auctionType
-    ) internal returns (bytes32 auctionId) {
+    function _initializeAuction(address proxyAddress, AuctionCreationParams memory params, AuctionType auctionType)
+        internal
+        returns (bytes32 auctionId)
+    {
         EnglishAuctionImplementation(proxyAddress).initialize(marketplaceWallet);
 
         auctionId = IAuction(proxyAddress).createAuction(
@@ -810,8 +809,6 @@ contract AuctionFactory is Ownable, Pausable, ReentrancyGuard {
             revert Auction__ZeroAddress();
         }
     }
-
-
 
     /**
      * @notice Validates NFT availability for auction (not already listed)
