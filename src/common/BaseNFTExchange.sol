@@ -136,12 +136,7 @@ contract BaseNFTExchange is Initializable, Ownable, ReentrancyGuard, ERC165, IEx
         returns (bytes32)
     {
         // Use gas-optimized assembly version for listing ID generation
-        return GasOptimizedLibrary.generateOptimizedListingId(
-            m_contractAddress, 
-            m_tokenId, 
-            m_sender, 
-            block.timestamp
-        );
+        return GasOptimizedLibrary.generateOptimizedListingId(m_contractAddress, m_tokenId, m_sender, block.timestamp);
     }
 
     // Internal function to create a single listing
@@ -216,10 +211,7 @@ contract BaseNFTExchange is Initializable, Ownable, ReentrancyGuard, ERC165, IEx
     }
 
     // Internal function to distribute payments and emit event
-    function _distributePaymentsWithEvent(
-        bytes32 listingId,
-        PaymentDistribution memory payment
-    ) internal {
+    function _distributePaymentsWithEvent(bytes32 listingId, PaymentDistribution memory payment) internal {
         // Calculate seller amount (listing price minus royalty)
         uint256 sellerAmount = payment.price - payment.royalty;
         uint256 totalPrice = payment.price + payment.takerFee;
@@ -255,14 +247,7 @@ contract BaseNFTExchange is Initializable, Ownable, ReentrancyGuard, ERC165, IEx
         _removeListingFromArray(s_listingsBySeller[m_seller], m_listingId);
 
         // Emit event
-        emit NFTSold(
-            m_listingId,
-            m_contractAddress,
-            tokenId,
-            m_seller,
-            msg.sender,
-            s_listings[m_listingId].price
-        );
+        emit NFTSold(m_listingId, m_contractAddress, tokenId, m_seller, msg.sender, s_listings[m_listingId].price);
     }
 
     // View function to get floor price (placeholder, needs oracle)
@@ -602,13 +587,7 @@ contract BaseNFTExchange is Initializable, Ownable, ReentrancyGuard, ERC165, IEx
         delete s_activeListings[listing.contractAddress][listing.tokenId][listing.seller];
 
         // Emit event
-        emit ListingExpired(
-            listingId,
-            listing.contractAddress,
-            listing.tokenId,
-            listing.seller,
-            expirationTime
-        );
+        emit ListingExpired(listingId, listing.contractAddress, listing.tokenId, listing.seller, expirationTime);
 
         return true;
     }

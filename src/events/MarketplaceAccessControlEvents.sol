@@ -38,16 +38,12 @@ event RoleRevokedWithReason(
 /**
  * @notice Emitted when a role is granted (simple version)
  */
-event RoleGrantedSimple(
-    bytes32 indexed role, address indexed account, address indexed sender, uint256 timestamp
-);
+event RoleGrantedSimple(bytes32 indexed role, address indexed account, address indexed sender, uint256 timestamp);
 
 /**
  * @notice Emitted when a role is revoked (simple version)
  */
-event RoleRevokedSimple(
-    bytes32 indexed role, address indexed account, address indexed sender, uint256 timestamp
-);
+event RoleRevokedSimple(bytes32 indexed role, address indexed account, address indexed sender, uint256 timestamp);
 
 /**
  * @notice Emitted when a role's active status changes
