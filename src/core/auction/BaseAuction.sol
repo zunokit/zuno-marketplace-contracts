@@ -557,6 +557,70 @@ abstract contract BaseAuction is IAuction, ReentrancyGuard, Pausable, Ownable {
     }
 
     /**
+     * @notice Gets active auctions by seller (excludes CANCELLED and ENDED)
+     * @param seller Address of the seller
+     * @return auctionIds Array of active auction IDs
+     * @dev Filters out cancelled and ended auctions for cleaner UI display
+     */
+    function getActiveAuctionsBySeller(address seller) external view returns (bytes32[] memory auctionIds) {
+        bytes32[] memory allSellerAuctions = sellerAuctions[seller];
+        uint256 activeCount = 0;
+
+        // First pass: count active auctions
+        for (uint256 i = 0; i < allSellerAuctions.length; i++) {
+            AuctionStatus status = auctions[allSellerAuctions[i]].status;
+            if (status == AuctionStatus.CREATED || status == AuctionStatus.ACTIVE) {
+                activeCount++;
+            }
+        }
+
+        // Second pass: build result array
+        auctionIds = new bytes32[](activeCount);
+        uint256 index = 0;
+        for (uint256 i = 0; i < allSellerAuctions.length; i++) {
+            AuctionStatus status = auctions[allSellerAuctions[i]].status;
+            if (status == AuctionStatus.CREATED || status == AuctionStatus.ACTIVE) {
+                auctionIds[index++] = allSellerAuctions[i];
+            }
+        }
+
+        return auctionIds;
+    }
+
+    /**
+     * @notice Gets auctions by seller filtered by status
+     * @param seller Address of the seller
+     * @param status The status to filter by
+     * @return auctionIds Array of auction IDs with the specified status
+     */
+    function getAuctionsBySellerAndStatus(address seller, AuctionStatus status)
+        external
+        view
+        returns (bytes32[] memory auctionIds)
+    {
+        bytes32[] memory allSellerAuctions = sellerAuctions[seller];
+        uint256 matchCount = 0;
+
+        // First pass: count matching auctions
+        for (uint256 i = 0; i < allSellerAuctions.length; i++) {
+            if (auctions[allSellerAuctions[i]].status == status) {
+                matchCount++;
+            }
+        }
+
+        // Second pass: build result array
+        auctionIds = new bytes32[](matchCount);
+        uint256 index = 0;
+        for (uint256 i = 0; i < allSellerAuctions.length; i++) {
+            if (auctions[allSellerAuctions[i]].status == status) {
+                auctionIds[index++] = allSellerAuctions[i];
+            }
+        }
+
+        return auctionIds;
+    }
+
+    /**
      * @notice Gets auctions by NFT contract
      * @param nftContract Address of the NFT contract
      * @return auctionIds Array of auction IDs
