@@ -167,4 +167,103 @@ contract UnitERC1155CollectionTest is Test {
         assertEq(setup.collection.getTotalMinted(), 1);
         assertEq(setup.collection.getMintedPerWallet(setup.user), 1);
     }
+
+    // ============ Owner Minting Tests ============
+
+    function test_OwnerMint_Success() public {
+        // Owner can mint without payment, before mint start time
+        vm.startPrank(setup.owner);
+        vm.expectEmit(true, true, true, true);
+        emit BatchMinted(setup.owner, 1);
+        setup.collection.ownerMint(setup.owner, 1);
+        vm.stopPrank();
+
+        assertEq(setup.collection.balanceOf(setup.owner, 1), 1);
+        assertEq(setup.collection.getTotalMinted(), 1);
+    }
+
+    function test_OwnerMint_ToOtherAddress() public {
+        // Owner can mint to another address
+        vm.startPrank(setup.owner);
+        setup.collection.ownerMint(setup.user, 1);
+        vm.stopPrank();
+
+        assertEq(setup.collection.balanceOf(setup.user, 1), 1);
+        assertEq(setup.collection.getTotalMinted(), 1);
+    }
+
+    function test_OwnerMint_BatchSuccess() public {
+        vm.startPrank(setup.owner);
+        vm.expectEmit(true, true, true, true);
+        emit BatchMinted(setup.owner, 5);
+        setup.collection.ownerMint(setup.owner, 5);
+        vm.stopPrank();
+
+        for (uint256 i = 1; i <= 5; i++) {
+            assertEq(setup.collection.balanceOf(setup.owner, i), 1);
+        }
+        assertEq(setup.collection.getTotalMinted(), 5);
+    }
+
+    function test_OwnerMint_BypassesMintLimitPerWallet() public {
+        // Owner should be able to exceed mintLimitPerWallet
+        vm.startPrank(setup.owner);
+        // mintLimitPerWallet is 5, but owner can mint more
+        setup.collection.ownerMint(setup.owner, 10);
+        vm.stopPrank();
+
+        assertEq(setup.collection.getTotalMinted(), 10);
+    }
+
+    function test_OwnerMint_BypassesAllowlist() public {
+        // Set allowlist-only mode
+        vm.startPrank(setup.owner);
+        setup.collection.setAllowlistOnly(true);
+        // Owner can still mint without being in allowlist
+        setup.collection.ownerMint(setup.owner, 1);
+        vm.stopPrank();
+
+        assertEq(setup.collection.balanceOf(setup.owner, 1), 1);
+    }
+
+    function test_OwnerMint_BeforeMintStart() public {
+        // Owner can mint before mintStartTime
+        vm.warp(setup.params.mintStartTime - 1 days);
+
+        vm.startPrank(setup.owner);
+        setup.collection.ownerMint(setup.owner, 1);
+        vm.stopPrank();
+
+        assertEq(setup.collection.balanceOf(setup.owner, 1), 1);
+    }
+
+    function test_OwnerMint_RespectsMaxSupply() public {
+        // Create collection with low max supply
+        CollectionParams memory smallParams = setup.params;
+        smallParams.maxSupply = 5;
+        ERC1155Collection smallCollection = new ERC1155Collection(smallParams);
+
+        vm.startPrank(setup.owner);
+        // Mint up to max
+        smallCollection.ownerMint(setup.owner, 5);
+
+        // Try to mint more - should fail
+        vm.expectRevert(Collection__MintLimitExceeded.selector);
+        smallCollection.ownerMint(setup.owner, 1);
+        vm.stopPrank();
+    }
+
+    function test_OwnerMint_OnlyOwner() public {
+        vm.startPrank(setup.user);
+        vm.expectRevert();
+        setup.collection.ownerMint(setup.user, 1);
+        vm.stopPrank();
+    }
+
+    function test_OwnerMint_ZeroAmount() public {
+        vm.startPrank(setup.owner);
+        vm.expectRevert(Collection__InvalidAmount.selector);
+        setup.collection.ownerMint(setup.owner, 0);
+        vm.stopPrank();
+    }
 }

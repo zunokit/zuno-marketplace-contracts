@@ -64,6 +64,21 @@ contract ERC1155Collection is ERC1155, BaseCollection, IERC2981 {
         emit BatchMinted(to, amount);
     }
 
+    /**
+     * @notice Owner-only mint function - bypasses payment, timing, allowlist, and per-wallet limits
+     * @param to Address to mint to
+     * @param amount Number of tokens to mint
+     * @dev Only respects maxSupply limit for safety
+     */
+    function ownerMint(address to, uint256 amount) external onlyOwner {
+        if (amount == 0) revert Collection__InvalidAmount();
+        if (s_totalMinted + amount > s_maxSupply) {
+            revert Collection__MintLimitExceeded();
+        }
+        _batchMint(to, amount);
+        emit BatchMinted(to, amount);
+    }
+
     function _batchMint(address to, uint256 amount) internal {
         uint256 startTokenId = s_tokenIdCounter;
         uint256[] memory ids = new uint256[](amount);
