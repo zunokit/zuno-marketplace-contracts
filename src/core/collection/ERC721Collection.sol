@@ -65,6 +65,27 @@ contract ERC721Collection is ERC721, BaseCollection, IERC2981 {
         emit BatchMinted(to, amount);
     }
 
+    /**
+     * @notice Mint NFTs as owner (bypasses all restrictions except maxSupply)
+     * @param to Address to receive the minted NFT(s)
+     * @param amount Number of NFTs to mint (1 for single mint)
+     * @dev Only callable by collection owner
+     * @dev Bypasses: payment requirements, timing restrictions, allowlist, per-wallet limits
+     * @dev Still respects maxSupply limit
+     */
+    function ownerMint(address to, uint256 amount) external onlyOwner {
+        if (amount == 0) revert Collection__InvalidAmount();
+        if (to == address(0)) revert Collection__InvalidAddress();
+
+        // Check max supply limit
+        if (s_totalMinted + amount > s_maxSupply) {
+            revert Collection__MintLimitExceeded();
+        }
+
+        // Use the batch mint function since it already handles amount correctly
+        _batchMint(to, amount);
+    }
+
     function _mintWithURI(address to, uint256 tokenId) internal {
         s_mintedPerWallet[to]++;
         s_totalMinted++;

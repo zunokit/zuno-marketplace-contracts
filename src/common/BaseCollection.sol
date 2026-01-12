@@ -5,7 +5,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {CollectionParams, MintStage} from "src/types/ListingTypes.sol";
 import {Fee} from "src/common/Fee.sol";
 import "src/errors/CollectionErrors.sol";
-import {StageUpdated} from "src/events/CollectionEvents.sol";
+import {StageUpdated, AllowlistSetup} from "src/events/CollectionEvents.sol";
 
 contract BaseCollection is Ownable {
     string public s_description;
@@ -96,6 +96,32 @@ contract BaseCollection is Ownable {
      */
     function setAllowlistStageEnd(uint256 newEndTime) external onlyOwner {
         s_allowlistStageEnd = newEndTime;
+    }
+
+    /**
+     * @notice Setup allowlist in a single transaction
+     * @param addresses Array of addresses to add to allowlist
+     * @param allowlistOnly If true, only allowlisted addresses can mint (disables public stage)
+     * @dev Combines addToAllowlist + setAllowlistOnly in one atomic transaction
+     * @dev Addresses are added first, then allowlist mode is set (all-or-nothing)
+     */
+    function setupAllowlist(address[] calldata addresses, bool allowlistOnly) external onlyOwner {
+        uint256 length = addresses.length;
+        if (length == 0) revert Collection__InvalidAmount();
+        if (length > MAX_ALLOWLIST_BATCH_SIZE) {
+            revert Collection__MintLimitExceeded();
+        }
+
+        // First add all addresses to allowlist
+        for (uint256 i = 0; i < length; i++) {
+            if (addresses[i] == address(0)) revert Collection__InvalidAmount();
+            s_allowlist[addresses[i]] = true;
+        }
+
+        // Then set allowlist-only mode
+        s_allowlistOnly = allowlistOnly;
+
+        emit AllowlistSetup(addresses, allowlistOnly);
     }
 
     // Update mint stage (can be called manually or automatically)
