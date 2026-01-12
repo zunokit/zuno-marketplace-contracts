@@ -12,3 +12,10 @@ event StageUpdated(MintStage stage, uint256 timestamp);
 event ERC721CollectionCreated(address indexed collectionAddress, address indexed creator);
 
 event ERC1155CollectionCreated(address indexed collectionAddress, address indexed creator);
+
+/**
+ * @notice Emitted when allowlist is setup with addresses and allowlist-only mode
+ * @param addresses Array of addresses added to allowlist
+ * @param allowlistOnly Whether allowlist-only mode is enabled
+ */
+event AllowlistSetup(address[] addresses, bool allowlistOnly);
