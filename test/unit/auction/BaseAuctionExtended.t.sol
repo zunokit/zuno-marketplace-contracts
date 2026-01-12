@@ -4,7 +4,7 @@ pragma solidity ^0.8.30;
 import {Test, console2} from "forge-std/Test.sol";
 import {BaseAuction} from "src/core/auction/BaseAuction.sol";
 import {IAuction} from "src/interfaces/IAuction.sol";
-import {AuctionCreationParams, AuctionType, DEFAULT_MIN_BID_INCREMENT} from "src/types/AuctionTypes.sol";
+import {AuctionCreationParams, AuctionType, AuctionStatus, DEFAULT_MIN_BID_INCREMENT} from "src/types/AuctionTypes.sol";
 import {AuctionTestHelpers} from "test/utils/auction/AuctionTestHelpers.sol";
 import "src/errors/AuctionErrors.sol";
 
@@ -195,7 +195,7 @@ contract BaseAuctionExtendedTest is AuctionTestHelpers {
         englishAuction.cancelAuction(auctionId);
     }
 
-    function test_CancelAuction_RevertWithBids() public {
+    function test_CancelAuction_WithBids_Success() public {
         bytes32 auctionId = createBasicEnglishAuction(1);
 
         // Place a bid through factory
@@ -203,10 +203,23 @@ contract BaseAuctionExtendedTest is AuctionTestHelpers {
         vm.prank(BIDDER1);
         auctionFactory.placeBid{value: 2 ether}(auctionId);
 
-        // Try to cancel - should fail because there are bids
+        // Cancel auction (should succeed - English auctions allow cancellation with bids)
         vm.prank(SELLER);
-        vm.expectRevert(Auction__CannotCancelWithBids.selector);
         auctionFactory.cancelAuction(auctionId);
+
+        // Verify auction is cancelled
+        IAuction.Auction memory auction = auctionFactory.getAuction(auctionId);
+        assertEq(uint256(auction.status), uint256(AuctionStatus.CANCELLED));
+
+        // Verify highest bidder can withdraw their refund
+        uint256 pendingRefund = auctionFactory.getPendingRefund(auctionId, BIDDER1);
+        assertEq(pendingRefund, 2 ether, "Bidder should have pending refund");
+
+        uint256 bidder1BalanceBefore = BIDDER1.balance;
+        vm.prank(BIDDER1);
+        auctionFactory.withdrawBid(auctionId);
+
+        assertEq(BIDDER1.balance, bidder1BalanceBefore + 2 ether, "Bidder should receive refund");
     }
 
     function test_CancelAuction_RevertNonExistentAuction() public {

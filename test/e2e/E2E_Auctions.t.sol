@@ -351,7 +351,7 @@ contract E2E_AuctionsTest is E2E_BaseSetup {
         mockERC721.mint(alice, 30);
 
         vm.startPrank(alice);
-        mockERC721.approve(address(englishAuction), 30);
+        mockERC721.approve(address(auctionFactory), 30);
         bytes32 auctionId =
             auctionFactory.createEnglishAuction(address(mockERC721), 30, 1, 1 ether, 1.5 ether, AUCTION_DURATION);
         vm.stopPrank();
@@ -367,18 +367,46 @@ contract E2E_AuctionsTest is E2E_BaseSetup {
         auctionFactory.placeBid{value: 2 ether}(auctionId);
         console2.log("Step 2: Bob and Charlie placed bids");
 
-        // Alice attempts to cancel auction with existing bids -> should revert
+
+        // Alice cancels auction with existing bids (should succeed - English auctions allow cancellation)
         vm.prank(alice);
-        vm.expectRevert(Auction__CannotCancelWithBids.selector);
         auctionFactory.cancelAuction(auctionId);
-        console2.log("Step 3: Cancellation reverted as expected (bids exist)");
+        console2.log("Step 3: Auction cancelled successfully");
 
-        // Highest bid remains, no refunds until settlement; ownership unchanged yet
+        // Verify auction is cancelled
+        IAuction.Auction memory auction = auctionFactory.getAuction(auctionId);
+        assertEq(uint256(auction.status), uint256(AuctionStatus.CANCELLED));
+
+        // Verify NFT returned to seller
         assertNFTOwner(address(mockERC721), 30, alice);
-        console2.log("Step 4: NFT still with seller; refunds only on settlement/cancel without bids");
+        console2.log("Step 4: NFT returned to seller");
 
-        console2.log("=== Auction Cancellation with Refund Attempt: SUCCESS ===\n");
+        // Verify bidders can withdraw their refunds
+        uint256 bobPendingRefund = auctionFactory.getPendingRefund(auctionId, bob);
+        uint256 charliePendingRefund = auctionFactory.getPendingRefund(auctionId, charlie);
+
+        // Bob should have 1.5 ether pending refund
+        assertEq(bobPendingRefund, 1.5 ether);
+
+        // Charlie should have 2 ether pending refund (was highest bidder)
+        assertEq(charliePendingRefund, 2 ether);
+        console2.log("Step 5: Bidders have pending refunds");
+
+        // Bob withdraws refund
+        vm.prank(bob);
+        auctionFactory.withdrawBid(auctionId);
+        assertEq(bob.balance, bobBalanceBefore, "Bob should receive full refund");
+        console2.log("Step 6: Bob withdrawn refund");
+
+        // Charlie withdraws refund
+        vm.prank(charlie);
+        auctionFactory.withdrawBid(auctionId);
+        assertEq(charlie.balance, charlieBalanceBefore, "Charlie should receive full refund");
+        console2.log("Step 7: Charlie withdrawn refund");
+
+        console2.log("=== Auction Cancellation with Refunds: SUCCESS ===\n");
     }
+
 
     // ============================================================================
     // TEST 7: RESERVE PRICE NOT MET

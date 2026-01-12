@@ -521,6 +521,18 @@ contract EnglishAuction is BaseAuction {
             emit BidRefunded(auctionId, highestBidder, highestBid);
         }
 
+        // Emit events for ALL other pending refunds
+        Bid[] storage bids = auctionBids[auctionId];
+        for (uint256 i = 0; i < bids.length; i++) {
+            address bidder = bids[i].bidder;
+            uint256 pending = pendingRefunds[auctionId][bidder];
+
+            if (pending > 0 && bidder != highestBidder) {
+                emit BidRefunded(auctionId, bidder, pending);
+            }
+        }
+
+
         // Return NFT to seller using existing transfer function
         _transferNFT(auction, seller);
 
