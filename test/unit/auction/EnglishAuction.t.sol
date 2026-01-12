@@ -435,16 +435,27 @@ contract EnglishAuctionTest is AuctionTestHelpers {
         assertEq(uint256(auction.status), uint256(AuctionStatus.CANCELLED));
     }
 
-    function test_CancelAuction_RevertIfHasBids() public {
+    function test_CancelAuction_WithBids_Success() public {
         bytes32 auctionId = createBasicStandaloneEnglishAuction(1);
 
         // Place a bid
         vm.prank(BIDDER1);
         englishAuction.placeBid{value: DEFAULT_START_PRICE}(auctionId);
 
+        // Get refund amount before cancellation
+        uint256 refundBefore = englishAuction.getPendingRefund(auctionId, BIDDER1);
+
+        // Cancel auction with bids - should succeed now
         vm.prank(SELLER);
-        vm.expectRevert(Auction__CannotCancelWithBids.selector);
         englishAuction.cancelAuction(auctionId);
+
+        // Check auction status is CANCELLED
+        IAuction.Auction memory auction = englishAuction.getAuction(auctionId);
+        assertEq(uint256(auction.status), uint256(AuctionStatus.CANCELLED));
+
+        // Verify highest bidder was refunded
+        uint256 refundAfter = englishAuction.getPendingRefund(auctionId, BIDDER1);
+        assertEq(refundAfter, refundBefore + DEFAULT_START_PRICE, "Bidder should be refunded");
     }
 
     function test_CancelAuction_RevertIfNotSeller() public {

@@ -429,9 +429,58 @@ contract EnglishAuction is BaseAuction {
     }
 
     /**
+     * @notice Cancels an auction (direct call by seller)
+     * @param auctionId Unique identifier of the auction
+     * @dev Updated to allow cancellation with bids - highest bidder is refunded
+     */
+    function cancelAuction(bytes32 auctionId)
+        external
+        override
+        auctionExists(auctionId)
+        onlySeller(auctionId)
+        nonReentrant
+    {
+        Auction storage auction = auctions[auctionId];
+
+        // Check if auction can be cancelled
+        if (auction.status != AuctionStatus.ACTIVE) {
+            revert Auction__AuctionNotActive();
+        }
+
+        if (auction.auctionType != AuctionType.ENGLISH) {
+            revert Auction__UnsupportedAuctionType();
+        }
+
+        // Store highest bidder information for refund BEFORE marking as cancelled
+        // This prevents reentrancy attacks
+        address highestBidder = auction.highestBidder;
+        uint256 highestBid = auction.highestBid;
+
+        // Mark as cancelled BEFORE refunds to prevent reentrancy
+        auction.status = AuctionStatus.CANCELLED;
+        auction.endTime = 0;
+        _removeFromActiveAuctions(auctionId);
+
+        // Refund highest bidder if there are any bids
+        if (highestBidder != address(0) && highestBid > 0) {
+            pendingRefunds[auctionId][highestBidder] += highestBid;
+            emit BidRefunded(auctionId, highestBidder, highestBid);
+        }
+
+        // Return NFT to seller using existing transfer function
+        _transferNFT(auction, msg.sender);
+
+        // Notify validator about auction cancellation
+        _notifyValidatorAuctionCancelled(auction.nftContract, auction.tokenId, auction.seller);
+
+        emit AuctionCancelled(auctionId, msg.sender, "Cancelled with bids - highest bidder refunded");
+    }
+
+    /**
      * @notice Cancels an auction (called by factory)
      * @param auctionId Unique identifier of the auction
      * @param seller Address of the seller
+     * @dev Updated to allow cancellation with bids - highest bidder is refunded
      */
     function cancelAuctionFor(bytes32 auctionId, address seller)
         external
@@ -456,19 +505,29 @@ contract EnglishAuction is BaseAuction {
             revert Auction__UnsupportedAuctionType();
         }
 
-        // If there are bids, cancellation is not allowed for English auctions
-        if (auction.bidCount > 0) {
-            revert Auction__CannotCancelWithBids();
+        // Store highest bidder information for refund BEFORE marking as cancelled
+        // This prevents reentrancy attacks
+        address highestBidder = auction.highestBidder;
+        uint256 highestBid = auction.highestBid;
+
+        // Mark as cancelled BEFORE refunds to prevent reentrancy
+        auction.status = AuctionStatus.CANCELLED;
+        auction.endTime = 0;
+        _removeFromActiveAuctions(auctionId);
+
+        // Refund highest bidder if there are any bids
+        if (highestBidder != address(0) && highestBid > 0) {
+            pendingRefunds[auctionId][highestBidder] += highestBid;
+            emit BidRefunded(auctionId, highestBidder, highestBid);
         }
 
-        // Cancel the auction
-        auction.status = AuctionStatus.CANCELLED;
-        _removeFromActiveAuctions(auctionId);
+        // Return NFT to seller using existing transfer function
+        _transferNFT(auction, seller);
 
         // Notify validator about auction cancellation
         _notifyValidatorAuctionCancelled(auction.nftContract, auction.tokenId, auction.seller);
 
-        emit AuctionCancelled(auctionId, seller, "Cancelled by seller");
+        emit AuctionCancelled(auctionId, seller, "Cancelled with bids - highest bidder refunded");
     }
 
     /**

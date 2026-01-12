@@ -84,6 +84,28 @@ contract ERC1155Collection is ERC1155, BaseCollection, IERC2981 {
         _mintBatch(to, ids, values, "");
     }
 
+    /**
+     * @notice Mint NFTs as owner (bypasses all restrictions except maxSupply)
+     * @param to Address to receive the minted NFT(s)
+     * @param amount Number of NFTs to mint
+     * @dev Only callable by collection owner
+     * @dev Bypasses: payment requirements, timing restrictions, allowlist, per-wallet limits
+     * @dev Still respects maxSupply limit
+     */
+    function ownerMint(address to, uint256 amount) external onlyOwner {
+        if (amount == 0) revert Collection__InvalidAmount();
+        if (to == address(0)) revert Collection__InvalidAddress();
+
+        // Check max supply limit
+        if (s_totalMinted + amount > s_maxSupply) {
+            revert Collection__MintLimitExceeded();
+        }
+
+        // Use the batch mint function since it already handles amount correctly
+        _batchMint(to, amount);
+        emit BatchMinted(to, amount);
+    }
+
     // Override uri to resolve conflict between ERC1155 and ERC1155URIStorage
     function uri(uint256 tokenId) public view override(ERC1155) returns (string memory) {
         return super.uri(tokenId);
