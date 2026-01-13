@@ -77,7 +77,7 @@ contract AuctionCancellationTest is Test {
         assertEq(uint256(auction.status), uint256(AuctionStatus.CANCELLED));
     }
 
-    function test_EnglishAuction_CancelWithBids_ShouldRevert() public {
+    function test_EnglishAuction_CancelWithBids_RefundsAllBidders() public {
         // Create auction
         vm.startPrank(SELLER);
         mockERC721.setApprovalForAll(address(auctionFactory), true);
@@ -86,14 +86,50 @@ contract AuctionCancellationTest is Test {
         );
         vm.stopPrank();
 
-        // Place a bid
+        // Place multiple bids
         vm.prank(BIDDER1);
         auctionFactory.placeBid{value: DEFAULT_START_PRICE}(auctionId);
 
-        // Try to cancel auction (should fail - has bids)
+        vm.prank(BIDDER2);
+        auctionFactory.placeBid{value: DEFAULT_START_PRICE * 2}(auctionId);
+
+        // Cancel auction (should succeed - English auctions allow cancellation with bids)
         vm.prank(SELLER);
-        vm.expectRevert(Auction__CannotCancelWithBids.selector);
         auctionFactory.cancelAuction(auctionId);
+
+        // Verify all bidders can withdraw their pending refunds
+        uint256 bidder1Refund = auctionFactory.getPendingRefund(auctionId, BIDDER1);
+        uint256 bidder2Refund = auctionFactory.getPendingRefund(auctionId, BIDDER2);
+
+        // BIDDER1 should have refund from their first bid
+        assertEq(bidder1Refund, DEFAULT_START_PRICE);
+
+        // BIDDER2 should have refund from being the highest bidder when cancelled
+        assertEq(bidder2Refund, DEFAULT_START_PRICE * 2);
+
+        // Verify auction is cancelled
+        IAuction.Auction memory auction = auctionFactory.getAuction(auctionId);
+        assertEq(uint256(auction.status), uint256(AuctionStatus.CANCELLED));
+
+        // Verify NFT returned to seller
+        assertEq(mockERC721.ownerOf(1), SELLER);
+
+        // Verify bidders can actually withdraw their refunds
+        uint256 bidder1BalanceBefore = BIDDER1.balance;
+        uint256 bidder2BalanceBefore = BIDDER2.balance;
+
+        vm.prank(BIDDER1);
+        auctionFactory.withdrawBid(auctionId);
+
+        vm.prank(BIDDER2);
+        auctionFactory.withdrawBid(auctionId);
+
+        assertEq(BIDDER1.balance, bidder1BalanceBefore + bidder1Refund);
+        assertEq(BIDDER2.balance, bidder2BalanceBefore + bidder2Refund);
+
+        // Verify refunds are cleared after withdrawal
+        assertEq(auctionFactory.getPendingRefund(auctionId, BIDDER1), 0);
+        assertEq(auctionFactory.getPendingRefund(auctionId, BIDDER2), 0);
     }
 
     // ============================================================================
