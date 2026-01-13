@@ -543,7 +543,6 @@ contract EnglishAuction is BaseAuction {
             }
         }
 
-
         // Return NFT to seller using existing transfer function
         _transferNFT(auction, seller);
 
