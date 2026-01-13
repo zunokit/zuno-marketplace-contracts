@@ -553,26 +553,6 @@ contract EnglishAuction is BaseAuction {
     }
 
     /**
-     * @notice Refunds all bidders when auction is cancelled
-     * @param auctionId The auction ID
-     */
-    function _refundAllBidders(bytes32 auctionId) internal {
-        Auction storage auction = auctions[auctionId];
-
-        // Highest bidder is handled directly in cancelAuctionFor; ensure others are marked refunded
-
-        // Mark all bids as refunded in the bids array
-        Bid[] storage bids = auctionBids[auctionId];
-        for (uint256 i = 0; i < bids.length; i++) {
-            if (!bids[i].refunded) {
-                bids[i].refunded = true;
-            }
-        }
-
-        emit AuctionCancelledWithRefunds(auctionId, auction.bidCount);
-    }
-
-    /**
      * @notice Gets pending refund amount for a bidder
      * @param auctionId Unique identifier of the auction
      * @param bidder Address of the bidder
