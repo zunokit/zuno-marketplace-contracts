@@ -309,16 +309,18 @@ Exchange (ERC721NFTExchange or ERC1155NFTExchange)
 
 ### 4.2 Purchase Flow
 
+#### ERC721 Purchase Flow
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        Purchase Flow                            │
+│                     ERC721 Purchase Flow                         │
 └─────────────────────────────────────────────────────────────────┘
 
 Buyer (Frontend)
     │
     │ 1. Exchange.purchaseListing(listingId, paymentAmount)
     ▼
-Exchange
+Exchange (ERC721NFTExchange)
     │
     ├─→ 2. Validate listing status
     │       └─→ listing.status == ListingStatus.ACTIVE
@@ -327,9 +329,7 @@ Exchange
     │       └─→ paymentAmount >= listing.price
     │
     ├─→ 4. NFTTransferLib.transferNFT(seller, buyer, nftContract, tokenId)
-    │       ├─→ Auto-detect standard (ERC165)
-    │       ├─→ ERC721(nftContract).safeTransferFrom(seller, buyer, tokenId)
-    │       └─→ ERC1155(nftContract).safeTransferFrom(seller, buyer, tokenId, 1, "")
+    │       └─→ ERC721(nftContract).safeTransferFrom(seller, buyer, tokenId)
     │
     ├─→ 5. PaymentDistributionLib.distribute(paymentAmount, listing)
     │       │
@@ -358,6 +358,71 @@ Exchange
     │
     └─→ 8. Emit ListingSold event
             └─→ emit ListingSold(listingId, buyer, seller, price, fees)
+```
+
+#### ERC1155 Purchase Flow (Full or Partial)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    ERC1155 Purchase Flow                        │
+└─────────────────────────────────────────────────────────────────┘
+
+Buyer (Frontend)
+    │
+    │ 1a. Exchange.buyNFT(listingId) - Buy full listing amount
+    │ 1b. Exchange.buyNFT(listingId, amount) - Buy partial amount
+    ▼
+Exchange (ERC1155NFTExchange)
+    │
+    ├─→ 2. Validate listing status
+    │       └─→ listing.status == ListingStatus.ACTIVE
+    │
+    ├─→ 3. Validate purchase amount (for partial purchase)
+    │       ├─→ amount > 0
+    │       └─→ amount <= listing.amount
+    │
+    ├─→ 4. Calculate proportional price
+    │       └─→ proportionalPrice = (listing.price * purchaseAmount) / listing.amount
+    │
+    ├─→ 5. Validate payment amount
+    │       └─→ paymentAmount >= proportionalPrice + fees
+    │
+    ├─→ 6. NFTTransferLib.transferERC1155(seller, buyer, nftContract, tokenId, purchaseAmount)
+    │       └─→ ERC1155(nftContract).safeTransferFrom(seller, buyer, tokenId, purchaseAmount, "")
+    │
+    ├─→ 7. PaymentDistributionLib.distribute(proportionalPrice, listing)
+    │       │
+    │       ├─→ 7a. RoyaltyLib.calculateRoyalty(nftContract, tokenId, proportionalPrice)
+    │       │       ├─→ Check ERC2981 (royalty standard)
+    │       │       ├─→ Check Fee contract (override)
+    │       │       └─→ Check Collection contract (fallback)
+    │       │
+    │       ├─→ 7b. Calculate platform fee
+    │       │       └─→ FeeRegistry.getTakerFee()
+    │       │
+    │       ├─→ 7c. Transfer royalty
+    │       │       └─→ payable(royaltyRecipient).transfer(royaltyAmount)
+    │       │
+    │       ├─→ 7d. Transfer platform fee
+    │       │       └─→ payable(marketplaceWallet).transfer(feeAmount)
+    │       │
+    │       └─→ 7e. Transfer remainder to seller
+    │               └─→ payable(seller).transfer(sellerAmount)
+    │
+    ├─→ 8. Update listing amount
+    │       └─→ listing.amount -= purchaseAmount
+    │
+    ├─→ 9. Check listing finalization
+    │       │
+    │       ├─→ If listing.amount == 0:
+    │       │       ├─→ listing.status = ListingStatus.SOLD
+    │       │       └─→ Emit ListingSold event
+    │       │
+    │       └─→ If listing.amount > 0:
+    │               └─→ Emit NFTSold event (partial sale, listing remains active)
+    │
+    └─→ 10. Track history
+            └─→ ListingHistoryTracker.track(listingId, saleEvent)
 ```
 
 ### 4.3 Auction Flow
