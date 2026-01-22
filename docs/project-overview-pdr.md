@@ -195,13 +195,16 @@ To provide a secure, gas-efficient, and developer-friendly NFT marketplace infra
 
 **Features:**
 - ERC721 and ERC1155 support
+- ERC1155 partial purchase support (buy any amount from listing)
+- Proportional pricing for ERC1155 (price scales with amount)
 - Automatic royalty distribution (EIP-2981)
 - Configurable listing duration (1h - 365d)
 - Minimum price enforcement (0.001 ETH)
+- Minimum amount enforcement (amount > 0 for ERC1155)
 - Batch listing support
 
-**Gas Cost:** ~150k gas
-**User Experience:** Instant purchase, no bidding required
+**Gas Cost:** ~150k gas (ERC721), ~160k gas (ERC1155)
+**User Experience:** Instant purchase, no bidding required, flexible amount for ERC1155
 
 #### English Auctions
 **Capability:** Highest bidder wins after duration
@@ -528,8 +531,11 @@ MAINNET_RPC_URL=https://...
 - NFT transferred to buyer
 - Fees distributed correctly
 - Royalties paid to creator
-- Event emitted: ListingSold
-- Gas cost ≤150k
+- **ERC1155**: Support full or partial purchase
+- **ERC1155**: Proportional pricing based on amount purchased
+- **ERC1155**: Listing remains active if not fully sold
+- Event emitted: ListingSold (or NFTSold for partial ERC1155 sale)
+- Gas cost ≤150k (ERC721), ≤160k (ERC1155)
 
 #### FR-006: Place Auction Bid
 **Description:** Bidder must be able to place bid on auction
@@ -561,6 +567,8 @@ MAINNET_RPC_URL=https://...
 - Collection deployed via minimal proxy
 - Deployer set as owner
 - Configuration parameters set correctly
+- **ERC1155**: Supports multi-token collections
+- **ERC1155**: Supports configurable amounts per token
 - Event emitted: CollectionCreated
 - Gas cost ≤300k
 
