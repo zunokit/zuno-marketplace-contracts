@@ -98,6 +98,10 @@ contract UnitBaseCollectionTest is Test {
     }
 
     function test_UpdateMintStage_Allowlist() public {
+        // Enable allowlist-only mode to test allowlist stage
+        vm.prank(setup.owner);
+        setup.collection.setAllowlistOnly(true);
+
         vm.warp(setup.params.mintStartTime);
         setup.collection.updateMintStage();
         assertEq(uint256(setup.collection.getCurrentStage()), uint256(MintStage.ALLOWLIST));
@@ -163,6 +167,10 @@ contract UnitBaseCollectionTest is Test {
     }
 
     function test_Mint_Allowlist_NotInAllowlist() public {
+        // Enable allowlist-only mode
+        vm.prank(setup.owner);
+        setup.collection.setAllowlistOnly(true);
+
         vm.warp(setup.params.mintStartTime);
         setup.collection.updateMintStage();
 
@@ -174,6 +182,10 @@ contract UnitBaseCollectionTest is Test {
     }
 
     function test_Mint_Allowlist_Success() public {
+        // Enable allowlist-only mode
+        vm.prank(setup.owner);
+        setup.collection.setAllowlistOnly(true);
+
         vm.warp(setup.params.mintStartTime);
         setup.collection.updateMintStage();
 
@@ -230,6 +242,10 @@ contract UnitBaseCollectionTest is Test {
     // ============ Owner Allowlist Exemption Tests ============
 
     function test_Owner_MintDuringAllowlist_NotOnAllowlist() public {
+        // Enable allowlist-only mode
+        vm.prank(setup.owner);
+        setup.collection.setAllowlistOnly(true);
+
         // Warp to allowlist stage
         vm.warp(setup.params.mintStartTime + 100);
         setup.collection.updateMintStage();
@@ -247,6 +263,10 @@ contract UnitBaseCollectionTest is Test {
     }
 
     function test_Owner_MintDuringAllowlist_WithAllowlistEntry() public {
+        // Enable allowlist-only mode
+        vm.prank(setup.owner);
+        setup.collection.setAllowlistOnly(true);
+
         // Warp to allowlist stage
         vm.warp(setup.params.mintStartTime + 100);
         setup.collection.updateMintStage();
@@ -266,6 +286,10 @@ contract UnitBaseCollectionTest is Test {
     }
 
     function test_NonOwner_MintDuringAllowlist_WhileOwnerOnAllowlist() public {
+        // Enable allowlist-only mode
+        vm.prank(setup.owner);
+        setup.collection.setAllowlistOnly(true);
+
         // Warp to allowlist stage
         vm.warp(setup.params.mintStartTime + 100);
         setup.collection.updateMintStage();
@@ -299,6 +323,10 @@ contract UnitBaseCollectionTest is Test {
     }
 
     function test_Owner_MintAllowlistOnlyMode_NotOnAllowlist() public {
+        // Enable allowlist-only mode
+        vm.prank(setup.owner);
+        setup.collection.setAllowlistOnly(true);
+
         // Warp to allowlist stage
         vm.warp(setup.params.mintStartTime + 100);
         setup.collection.updateMintStage();

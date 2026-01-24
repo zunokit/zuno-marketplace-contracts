@@ -145,6 +145,10 @@ contract UnitERC721CollectionTest is Test {
     }
 
     function test_Mint_NotInAllowlist() public {
+        // Enable allowlist-only mode
+        vm.prank(setup.owner);
+        setup.collection.setAllowlistOnly(true);
+
         vm.warp(setup.params.mintStartTime);
         setup.collection.updateMintStage();
         vm.deal(setup.user, setup.params.allowlistMintPrice);
@@ -156,6 +160,10 @@ contract UnitERC721CollectionTest is Test {
     }
 
     function test_Mint_Allowlist() public {
+        // Enable allowlist-only mode
+        vm.prank(setup.owner);
+        setup.collection.setAllowlistOnly(true);
+
         vm.warp(setup.params.mintStartTime);
         setup.collection.updateMintStage();
         vm.deal(setup.user, setup.params.allowlistMintPrice);
