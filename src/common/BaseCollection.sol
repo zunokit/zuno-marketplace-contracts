@@ -182,9 +182,9 @@ contract BaseCollection is Ownable {
             revert Collection__MintLimitExceeded();
         }
 
-        // Check allowlist if in allowlist stage
+        // Check allowlist if in allowlist stage (owner exempt)
         if (s_currentStage == MintStage.ALLOWLIST) {
-            if (!s_allowlist[to]) revert Collection__NotInAllowlist();
+            if (to != owner() && !s_allowlist[to]) revert Collection__NotInAllowlist();
         }
     }
 

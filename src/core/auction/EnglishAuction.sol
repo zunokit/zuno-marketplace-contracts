@@ -467,6 +467,17 @@ contract EnglishAuction is BaseAuction {
             emit BidRefunded(auctionId, highestBidder, highestBid);
         }
 
+        // Emit events for ALL other pending refunds (for UX consistency with cancelAuctionFor)
+        Bid[] storage bids = auctionBids[auctionId];
+        for (uint256 i = 0; i < bids.length; i++) {
+            address bidder = bids[i].bidder;
+            uint256 pending = pendingRefunds[auctionId][bidder];
+
+            if (pending > 0 && bidder != highestBidder) {
+                emit BidRefunded(auctionId, bidder, pending);
+            }
+        }
+
         // Return NFT to seller using existing transfer function
         _transferNFT(auction, msg.sender);
 
@@ -521,6 +532,17 @@ contract EnglishAuction is BaseAuction {
             emit BidRefunded(auctionId, highestBidder, highestBid);
         }
 
+        // Emit events for ALL other pending refunds
+        Bid[] storage bids = auctionBids[auctionId];
+        for (uint256 i = 0; i < bids.length; i++) {
+            address bidder = bids[i].bidder;
+            uint256 pending = pendingRefunds[auctionId][bidder];
+
+            if (pending > 0 && bidder != highestBidder) {
+                emit BidRefunded(auctionId, bidder, pending);
+            }
+        }
+
         // Return NFT to seller using existing transfer function
         _transferNFT(auction, seller);
 
@@ -528,26 +550,6 @@ contract EnglishAuction is BaseAuction {
         _notifyValidatorAuctionCancelled(auction.nftContract, auction.tokenId, auction.seller);
 
         emit AuctionCancelled(auctionId, seller, "Cancelled with bids - highest bidder refunded");
-    }
-
-    /**
-     * @notice Refunds all bidders when auction is cancelled
-     * @param auctionId The auction ID
-     */
-    function _refundAllBidders(bytes32 auctionId) internal {
-        Auction storage auction = auctions[auctionId];
-
-        // Highest bidder is handled directly in cancelAuctionFor; ensure others are marked refunded
-
-        // Mark all bids as refunded in the bids array
-        Bid[] storage bids = auctionBids[auctionId];
-        for (uint256 i = 0; i < bids.length; i++) {
-            if (!bids[i].refunded) {
-                bids[i].refunded = true;
-            }
-        }
-
-        emit AuctionCancelledWithRefunds(auctionId, auction.bidCount);
     }
 
     /**

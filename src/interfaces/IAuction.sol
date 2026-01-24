@@ -55,8 +55,6 @@ interface IAuction {
 
     event AuctionCancelled(bytes32 indexed auctionId, address indexed seller, string reason);
 
-    event AuctionCancelledWithRefunds(bytes32 indexed auctionId, uint256 bidCount);
-
     // Debug event for NFT validation troubleshooting
     event DebugNFTValidation(
         address indexed nftContract,
