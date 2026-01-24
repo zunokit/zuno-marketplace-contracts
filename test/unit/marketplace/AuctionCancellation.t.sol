@@ -9,6 +9,7 @@ import "src/core/proxy/EnglishAuctionImplementation.sol";
 import "src/core/proxy/DutchAuctionImplementation.sol";
 import "src/interfaces/IAuction.sol";
 import "src/errors/AuctionErrors.sol";
+import "src/types/AuctionTypes.sol";
 import "test/mocks/MockERC721.sol";
 
 /**
@@ -440,6 +441,80 @@ contract AuctionCancellationTest is Test {
         vm.prank(BIDDER2);
         auctionFactory.withdrawBid(auctionId);
         assertEq(BIDDER2.balance, bidder2BalanceBefore + 1.5 ether);
+    }
+
+    // ============================================================================
+    // DUTCH AUCTION CANCELLATION TESTS
+    // ============================================================================
+
+    /**
+     * @notice Test that Dutch auction cannot be canceled after purchase
+     * @dev Verifies Issue #112 - Bug 1 is already fixed by status check
+     */
+    function test_DutchAuction_CancelAfterPurchase_Reverts() public {
+        // Create Dutch auction
+        vm.startPrank(SELLER);
+        mockERC721.setApprovalForAll(address(auctionFactory), true);
+        bytes32 auctionId = auctionFactory.createDutchAuction(
+            address(mockERC721),
+            2,
+            1,
+            DEFAULT_START_PRICE,
+            DEFAULT_RESERVE_PRICE,
+            DEFAULT_DURATION,
+            DEFAULT_PRICE_DROP
+        );
+        vm.stopPrank();
+
+        // Verify initial owner is seller
+        assertEq(mockERC721.ownerOf(2), SELLER);
+
+        // Buyer purchases via buyNow
+        vm.prank(BIDDER1);
+        uint256 currentPrice = auctionFactory.getCurrentPrice(auctionId);
+        auctionFactory.buyNow{value: currentPrice}(auctionId);
+
+        // Verify auction is SETTLED
+        IAuction.Auction memory auction = auctionFactory.getAuction(auctionId);
+        assertEq(uint256(auction.status), uint256(AuctionStatus.SETTLED));
+
+        // Verify NFT was transferred away from seller
+        address newOwner = mockERC721.ownerOf(2);
+        assertNotEq(newOwner, SELLER);
+
+        // Seller should NOT be able to cancel after purchase
+        vm.prank(SELLER);
+        vm.expectRevert(Auction__AuctionNotActive.selector);
+        auctionFactory.cancelAuction(auctionId);
+    }
+
+    /**
+     * @notice Test that Dutch auction can be canceled before any purchase
+     */
+    function test_DutchAuction_CancelBeforePurchase_Succeeds() public {
+        // Create Dutch auction
+        vm.startPrank(SELLER);
+        mockERC721.setApprovalForAll(address(auctionFactory), true);
+        bytes32 auctionId = auctionFactory.createDutchAuction(
+            address(mockERC721),
+            3,
+            1,
+            DEFAULT_START_PRICE,
+            DEFAULT_RESERVE_PRICE,
+            DEFAULT_DURATION,
+            DEFAULT_PRICE_DROP
+        );
+
+        // Cancel before any purchase - should succeed
+        auctionFactory.cancelAuction(auctionId);
+
+        // Verify auction is CANCELLED
+        IAuction.Auction memory auction = auctionFactory.getAuction(auctionId);
+        assertEq(uint256(auction.status), uint256(AuctionStatus.CANCELLED));
+
+        // Verify NFT returned to seller
+        assertEq(mockERC721.ownerOf(3), SELLER);
+        vm.stopPrank();
     }
 
     // ============================================================================
