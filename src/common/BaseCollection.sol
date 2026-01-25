@@ -83,8 +83,10 @@ contract BaseCollection is Ownable {
     }
 
     /**
-     * @notice Sets allowlist-only mode (disables public minting)
-     * @param allowlistOnly If true, only allowlisted addresses can ever mint
+     * @notice Sets allowlist-only mode
+     * @param allowlistOnly If true, only allowlisted addresses can mint (no public stage).
+     *                      If false, public minting is open (allowlist stage is skipped).
+     * @dev When set to false, the collection immediately transitions to PUBLIC stage.
      */
     function setAllowlistOnly(bool allowlistOnly) external onlyOwner {
         s_allowlistOnly = allowlistOnly;
@@ -133,14 +135,17 @@ contract BaseCollection is Ownable {
         }
     }
 
-    // Internal function to calculate current stage based on time
+    // Internal function to calculate current stage based on allowlistOnly mode
+    // When allowlistOnly is true: only allowlisted addresses can mint (ALLOWLIST stage)
+    // When allowlistOnly is false: public minting is open (PUBLIC stage)
     function _calculateCurrentStage() internal view returns (MintStage) {
         if (block.timestamp < s_mintStartTime) {
             return MintStage.INACTIVE;
-        } else if (block.timestamp < s_allowlistStageEnd || s_allowlistOnly) {
-            // If allowlistOnly is true, never go to PUBLIC stage
+        } else if (s_allowlistOnly) {
+            // If allowlistOnly is true, only allowlisted addresses can mint (no public stage)
             return MintStage.ALLOWLIST;
         } else {
+            // When allowlistOnly is false, allowlist stage is skipped and public minting is open
             return MintStage.PUBLIC;
         }
     }
@@ -182,9 +187,9 @@ contract BaseCollection is Ownable {
             revert Collection__MintLimitExceeded();
         }
 
-        // Check allowlist if in allowlist stage
+        // Check allowlist if in allowlist stage (owner exempt)
         if (s_currentStage == MintStage.ALLOWLIST) {
-            if (!s_allowlist[to]) revert Collection__NotInAllowlist();
+            if (to != owner() && !s_allowlist[to]) revert Collection__NotInAllowlist();
         }
     }
 

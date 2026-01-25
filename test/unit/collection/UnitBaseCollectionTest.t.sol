@@ -98,6 +98,10 @@ contract UnitBaseCollectionTest is Test {
     }
 
     function test_UpdateMintStage_Allowlist() public {
+        // Enable allowlist-only mode to test allowlist stage
+        vm.prank(setup.owner);
+        setup.collection.setAllowlistOnly(true);
+
         vm.warp(setup.params.mintStartTime);
         setup.collection.updateMintStage();
         assertEq(uint256(setup.collection.getCurrentStage()), uint256(MintStage.ALLOWLIST));
@@ -163,6 +167,10 @@ contract UnitBaseCollectionTest is Test {
     }
 
     function test_Mint_Allowlist_NotInAllowlist() public {
+        // Enable allowlist-only mode
+        vm.prank(setup.owner);
+        setup.collection.setAllowlistOnly(true);
+
         vm.warp(setup.params.mintStartTime);
         setup.collection.updateMintStage();
 
@@ -174,6 +182,10 @@ contract UnitBaseCollectionTest is Test {
     }
 
     function test_Mint_Allowlist_Success() public {
+        // Enable allowlist-only mode
+        vm.prank(setup.owner);
+        setup.collection.setAllowlistOnly(true);
+
         vm.warp(setup.params.mintStartTime);
         setup.collection.updateMintStage();
 
@@ -224,6 +236,109 @@ contract UnitBaseCollectionTest is Test {
         vm.deal(setup.user, setup.params.publicMintPrice - 0.01 ether);
         vm.expectRevert(Collection__InsufficientPayment.selector);
         setup.collection.mint{value: setup.params.publicMintPrice - 0.01 ether}(setup.user, 1);
+        vm.stopPrank();
+    }
+
+    // ============ Owner Allowlist Exemption Tests ============
+
+    function test_Owner_MintDuringAllowlist_NotOnAllowlist() public {
+        // Enable allowlist-only mode
+        vm.prank(setup.owner);
+        setup.collection.setAllowlistOnly(true);
+
+        // Warp to allowlist stage
+        vm.warp(setup.params.mintStartTime + 100);
+        setup.collection.updateMintStage();
+        assertEq(uint256(setup.collection.getCurrentStage()), uint256(MintStage.ALLOWLIST));
+
+        // Owner NOT on allowlist
+        assertFalse(setup.collection.isInAllowlist(setup.owner));
+
+        // Owner should still be able to mint
+        vm.startPrank(setup.owner);
+        vm.deal(setup.owner, setup.params.allowlistMintPrice);
+        setup.collection.mint{value: setup.params.allowlistMintPrice}(setup.owner, 1);
+        assertEq(setup.collection.s_mintedPerWallet(setup.owner), 1);
+        vm.stopPrank();
+    }
+
+    function test_Owner_MintDuringAllowlist_WithAllowlistEntry() public {
+        // Enable allowlist-only mode
+        vm.prank(setup.owner);
+        setup.collection.setAllowlistOnly(true);
+
+        // Warp to allowlist stage
+        vm.warp(setup.params.mintStartTime + 100);
+        setup.collection.updateMintStage();
+
+        // Add owner to allowlist (should still work)
+        address[] memory addresses = new address[](1);
+        addresses[0] = setup.owner;
+        vm.prank(setup.owner);
+        setup.collection.addToAllowlist(addresses);
+
+        // Owner should be able to mint
+        vm.startPrank(setup.owner);
+        vm.deal(setup.owner, setup.params.allowlistMintPrice);
+        setup.collection.mint{value: setup.params.allowlistMintPrice}(setup.owner, 1);
+        assertEq(setup.collection.s_mintedPerWallet(setup.owner), 1);
+        vm.stopPrank();
+    }
+
+    function test_NonOwner_MintDuringAllowlist_WhileOwnerOnAllowlist() public {
+        // Enable allowlist-only mode
+        vm.prank(setup.owner);
+        setup.collection.setAllowlistOnly(true);
+
+        // Warp to allowlist stage
+        vm.warp(setup.params.mintStartTime + 100);
+        setup.collection.updateMintStage();
+
+        // Add only owner to allowlist
+        address[] memory addresses = new address[](1);
+        addresses[0] = setup.owner;
+        vm.prank(setup.owner);
+        setup.collection.addToAllowlist(addresses);
+
+        // Non-owner should NOT be able to mint (no piggybacking on owner exemption)
+        vm.startPrank(setup.user);
+        vm.deal(setup.user, setup.params.allowlistMintPrice);
+        vm.expectRevert(Collection__NotInAllowlist.selector);
+        setup.collection.mint{value: setup.params.allowlistMintPrice}(setup.user, 1);
+        vm.stopPrank();
+    }
+
+    function test_Owner_MintDuringPublicStage() public {
+        // Warp to public stage
+        vm.warp(setup.params.mintStartTime + setup.params.allowlistStageDuration + 1);
+        setup.collection.updateMintStage();
+        assertEq(uint256(setup.collection.getCurrentStage()), uint256(MintStage.PUBLIC));
+
+        // Owner should be able to mint during public stage
+        vm.startPrank(setup.owner);
+        vm.deal(setup.owner, setup.params.publicMintPrice);
+        setup.collection.mint{value: setup.params.publicMintPrice}(setup.owner, 1);
+        assertEq(setup.collection.s_mintedPerWallet(setup.owner), 1);
+        vm.stopPrank();
+    }
+
+    function test_Owner_MintAllowlistOnlyMode_NotOnAllowlist() public {
+        // Enable allowlist-only mode
+        vm.prank(setup.owner);
+        setup.collection.setAllowlistOnly(true);
+
+        // Warp to allowlist stage
+        vm.warp(setup.params.mintStartTime + 100);
+        setup.collection.updateMintStage();
+
+        // Owner NOT on allowlist
+        assertFalse(setup.collection.isInAllowlist(setup.owner));
+
+        // Owner should still be able to mint in allowlist-only mode
+        vm.startPrank(setup.owner);
+        vm.deal(setup.owner, setup.params.allowlistMintPrice);
+        setup.collection.mint{value: setup.params.allowlistMintPrice}(setup.owner, 1);
+        assertEq(setup.collection.s_mintedPerWallet(setup.owner), 1);
         vm.stopPrank();
     }
 }

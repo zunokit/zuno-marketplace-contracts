@@ -76,7 +76,10 @@ src/
   - Payment distribution with royalties
   - Bid cancellation and expiration handling
 - **ERC1155NFTExchange** - ERC1155 fixed-price trading
-  - Multi-token support
+  - Multi-token support with configurable amounts
+  - Partial purchase support (buy any amount from listing)
+  - Proportional pricing based on amount purchased
+  - Automatic listing finalization when fully sold
   - Batch operations for gas efficiency
 
 #### Collection System (3)
