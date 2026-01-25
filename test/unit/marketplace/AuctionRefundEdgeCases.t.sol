@@ -82,17 +82,17 @@ contract AuctionRefundEdgeCasesTest is Test {
         assertEq(auctionFactory.getPendingRefund(auctionId, BIDDER1), 1 ether); // BIDDER1 refunded
         assertEq(auctionFactory.getPendingRefund(auctionId, BIDDER2), 0); // BIDDER2 is highest
 
-        // BIDDER1 bids again with 3 ETH (should clear previous refund)
+        // BIDDER1 bids again with 3 ETH (KEEPS previous refund with new fix)
         vm.prank(BIDDER1);
         auctionFactory.placeBid{value: 3 ether}(auctionId);
-        assertEq(auctionFactory.getPendingRefund(auctionId, BIDDER1), 0); // Refund cleared!
+        assertEq(auctionFactory.getPendingRefund(auctionId, BIDDER1), 1 ether); // Refund preserved!
         assertEq(auctionFactory.getPendingRefund(auctionId, BIDDER2), 2 ether); // BIDDER2 refunded
 
-        // Cancel auction - BIDDER1 should get refund for highest bid
+        // Cancel auction - BIDDER1 gets additional refund for highest bid
         vm.prank(SELLER);
         auctionFactory.cancelAuction(auctionId);
 
-        assertEq(auctionFactory.getPendingRefund(auctionId, BIDDER1), 3 ether); // Now has refund
+        assertEq(auctionFactory.getPendingRefund(auctionId, BIDDER1), 4 ether); // 1 + 3 = 4 ETH
         assertEq(auctionFactory.getPendingRefund(auctionId, BIDDER2), 2 ether);
 
         // Both can withdraw
@@ -104,7 +104,7 @@ contract AuctionRefundEdgeCasesTest is Test {
         vm.prank(BIDDER2);
         auctionFactory.withdrawBid(auctionId);
 
-        assertEq(BIDDER1.balance, bidder1BalanceBefore + 3 ether);
+        assertEq(BIDDER1.balance, bidder1BalanceBefore + 4 ether);
         assertEq(BIDDER2.balance, bidder2BalanceBefore + 2 ether);
     }
 
