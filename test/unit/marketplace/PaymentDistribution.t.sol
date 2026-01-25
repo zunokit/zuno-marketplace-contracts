@@ -289,17 +289,16 @@ contract PaymentDistributionTest is Test {
         vm.prank(BIDDER2);
         auctionFactory.placeBid{value: fourthBid}(auctionId);
 
-        // Check pending refunds for BIDDER1 (should have thirdBid refund)
-        // When BIDDER1 bid thirdBid and became highest bidder, their pending refunds were cleared
-        // But when BIDDER2 bid fourthBid, BIDDER1's thirdBid becomes refundable
+        // UPDATED: With the fix, refunds ACCUMULATE instead of being cleared
+        // Check pending refunds for BIDDER1 and BIDDER2
         uint256 bidder1Refund = auctionFactory.getPendingRefund(auctionId, BIDDER1);
-        assertEq(bidder1Refund, thirdBid);
-
-        // Check pending refunds for BIDDER2 (should have 0 because they are currently highest bidder)
-        // When BIDDER2 bid fourthBid and became highest bidder again, their pending refunds were cleared
-        // This prevents the double-withdraw bug
         uint256 bidder2Refund = auctionFactory.getPendingRefund(auctionId, BIDDER2);
-        assertEq(bidder2Refund, 0);
+
+        // BIDDER1 was outbid twice (1 ETH + 1.2 ETH = 2.2 ETH total)
+        assertEq(bidder1Refund, DEFAULT_PRICE + thirdBid); // 1 + 1.2 = 2.2
+
+        // BIDDER2 was outbid once at 1.3 ETH, so refund = 1.1 ETH
+        assertEq(bidder2Refund, secondBid); // 1.1 ETH
 
         // Withdraw refunds
         uint256 bidder1BalanceBefore = BIDDER1.balance;

@@ -201,22 +201,35 @@ contract AuctionCancellationTest is Test {
         uint256 bidder1Refund = auctionFactory.getPendingRefund(auctionId, BIDDER1);
         uint256 bidder2Refund = auctionFactory.getPendingRefund(auctionId, BIDDER2);
 
-        // BIDDER1 should have NO refunds because they are currently the highest bidder
-        // When a user becomes highest bidder again, their pending refunds are cleared
-        // This prevents the double-withdraw bug
-        assertEq(bidder1Refund, 0);
+        console.log("=== firstBid:", firstBid);
+        console.log("=== secondBid:", secondBid);
+        console.log("=== thirdBid:", thirdBid);
+        console.log("=== fourthBid:", fourthBid);
+        console.log("=== BIDDER1 refund:", bidder1Refund);
+        console.log("=== BIDDER2 refund:", bidder2Refund);
 
-        // BIDDER2 should have refund only from fourth bid (1.3 ETH)
-        // Their second bid (1.1 ETH) was already refunded when they became highest bidder
-        assertEq(bidder2Refund, fourthBid);
+        // UPDATED: With the fix, BIDDER1 KEEPS their accumulated refund
+        // They were outbid at thirdBid (1.2 ETH), but wait... when BIDDER2 bid fourthBid, that outbid BIDDER1
+        // So the refund should be 1.2 ETH
+        // Actually, let me trace through:
+        // - BIDDER1 bids 1 ETH: no refund (highest)
+        // - BIDDER2 bids 1.1 ETH: BIDDER1 refund = 1 ETH
+        // - BIDDER1 bids 1.2 ETH: still has 1 ETH refund (NOT cleared)
+        // - BIDDER2 bids 1.3 ETH: BIDDER1 refund = 1 + 1.2 = 2.2 ETH
+        // - BIDDER1 bids 1.4 ETH: still has 2.2 ETH refund
+        assertEq(bidder1Refund, firstBid + thirdBid); // 1 + 1.2 = 2.2 ETH
+
+        // BIDDER2 was outbid at fifthBid (1.4 ETH), so refund = 1.3 + 1.1 = 2.4 ETH
+        assertEq(bidder2Refund, secondBid + fourthBid); // 1.1 + 1.3 = 2.4
 
         // Test withdrawals
         uint256 bidder2BalanceBefore = BIDDER2.balance;
 
-        // BIDDER1 cannot withdraw because they have no pending refunds (they are highest bidder)
+        // UPDATED: With the fix, BIDDER1 CAN withdraw their accumulated refunds
+        uint256 bidder1BalanceBefore = BIDDER1.balance;
         vm.prank(BIDDER1);
-        vm.expectRevert(Auction__NoBidToRefund.selector);
         auctionFactory.withdrawBid(auctionId);
+        assertEq(BIDDER1.balance, bidder1BalanceBefore + bidder1Refund);
 
         // BIDDER2 can withdraw their refunds
         vm.prank(BIDDER2);
@@ -398,9 +411,10 @@ contract AuctionCancellationTest is Test {
         vm.prank(BIDDER1);
         auctionFactory.placeBid{value: DEFAULT_START_PRICE + 0.2 ether}(auctionId);
 
-        // 🔥 CRITICAL TEST: A should NOT have pending refunds when they're highest bidder
+        // 🔥 UPDATED TEST: With the fix, A KEEPS their pending refund even when highest bidder
+        // This prevents loss of funds when auction is canceled
         uint256 refundAfterRebid = auctionFactory.getPendingRefund(auctionId, BIDDER1);
-        assertEq(refundAfterRebid, 0);
+        assertEq(refundAfterRebid, DEFAULT_START_PRICE); // Refund is preserved
 
         // Verify A is indeed the highest bidder
         IAuction.Auction memory auction = auctionFactory.getAuction(auctionId);
@@ -431,12 +445,14 @@ contract AuctionCancellationTest is Test {
         vm.prank(BIDDER1);
         auctionFactory.placeBid{value: 2 ether}(auctionId);
 
-        // BIDDER1 should NOT be able to withdraw anything
+        // UPDATED: With the fix, BIDDER1 CAN withdraw their accumulated refunds
+        // They have 1 ETH from being outbid, which is preserved even when highest bidder
+        uint256 bidder1BalanceBefore = BIDDER1.balance;
         vm.prank(BIDDER1);
-        vm.expectRevert(Auction__NoBidToRefund.selector);
         auctionFactory.withdrawBid(auctionId);
+        assertEq(BIDDER1.balance, bidder1BalanceBefore + 1 ether);
 
-        // But BIDDER2 should be able to withdraw
+        // BIDDER2 should be able to withdraw their refund too
         uint256 bidder2BalanceBefore = BIDDER2.balance;
         vm.prank(BIDDER2);
         auctionFactory.withdrawBid(auctionId);

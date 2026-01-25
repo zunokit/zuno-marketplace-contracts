@@ -197,6 +197,10 @@ contract EnglishAuction is BaseAuction {
         address winner = auction.highestBidder;
         uint256 winningBid = auction.highestBid;
 
+        // Clear winner's pending refunds before settlement
+        // They get the NFT instead of the refunds
+        pendingRefunds[auctionId][winner] = 0;
+
         // Transfer NFT to winner
         _transferNFT(auction, winner);
 
@@ -291,11 +295,9 @@ contract EnglishAuction is BaseAuction {
             pendingRefunds[auctionId][auction.highestBidder] += auction.highestBid;
         }
 
-        // Clear any existing pending refunds for the new highest bidder
-        // This prevents the bug where a user can withdraw while being highest bidder
-        if (pendingRefunds[auctionId][bidder] > 0) {
-            pendingRefunds[auctionId][bidder] = 0;
-        }
+        // DON'T clear the bidder's existing pending refunds
+        // They will be cleared during settlement if this user wins
+        // Or preserved if auction is canceled
 
         // Update auction with new highest bid
         auction.highestBidder = bidder;
